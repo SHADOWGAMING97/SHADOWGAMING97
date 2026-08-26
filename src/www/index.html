@@ -1,0 +1,1125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<script>
+  // Runs synchronously, as early as possible in <head>, before the
+  // <style> block below is painted — this is what Issue 1's fix
+  // depends on. window.Capacitor is injected by the native runtime
+  // itself before any page script executes inside a real Capacitor
+  // WebView, so this check is authoritative and available this early
+  // (no need to wait for a deviceready-style event, unlike some older
+  // Cordova-style patterns). In a plain desktop/browser preview,
+  // window.Capacitor is simply undefined and this is a no-op, so the
+  // desktop preview chrome (.device-shell/.app-frame decoration)
+  // keeps working exactly as before for anyone opening this file
+  // directly in a browser.
+  if (window.Capacitor && typeof window.Capacitor.isNativePlatform === 'function' && window.Capacitor.isNativePlatform()) {
+    document.documentElement.classList.add('lsa-native');
+  }
+</script>
+<title>L'SA — Heat Intelligence</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    /* ---- L'SA identity: white + violet (the app's own chrome) ---- */
+    --paper:      #FAF8FF;
+    --paper-dim:  #F1ECFB;
+    --surface:    #FFFFFF;
+    --ink:        #1C1330;
+    --ink-soft:   #5B5270;
+    --violet-900: #241046;
+    --violet-700: #3F1E85;
+    --violet-600: #6D28D9;
+    --violet-500: #7C3AED;
+    --violet-300: #C4B0F5;
+    --violet-200: #E4D9FB;
+    --violet-100: #F1EAFC;
+    --line:       #E4DCF6;
+
+    /* ---- heat accents: the world outside gets warmer, the app chrome stays violet ---- */
+    --heat-500:   #F2600C;
+    --heat-300:   #FDBA74;
+    --sun-glow:   #FFB65C;
+
+    --radius-lg: 28px;
+    --radius-md: 18px;
+    --radius-sm: 12px;
+    --shadow-card: 0 18px 40px -20px rgba(36,16,70,.35);
+    --ease: cubic-bezier(.22,.9,.32,1);
+  }
+
+  *{ box-sizing:border-box; }
+  html,body{ height:100%; }
+  body{
+    margin:0;
+    background: radial-gradient(1200px 800px at 20% -10%, #2B1554 0%, #0E0620 55%, #08040F 100%);
+    font-family:'Manrope',system-ui,sans-serif;
+    color:var(--ink);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    min-height:100vh;
+    padding:28px 16px;
+  }
+
+  h1,h2,h3,.display{ font-family:'Space Grotesk',system-ui,sans-serif; letter-spacing:-.01em; }
+
+  a{ color:inherit; }
+  button{ font-family:inherit; }
+
+  :focus-visible{
+    outline: 2.5px solid var(--violet-500);
+    outline-offset: 2px;
+    border-radius: 6px;
+  }
+
+  /* ============ device shell (desktop preview chrome) ============ */
+  .device-shell{
+    width:390px;
+    max-width:100%;
+    position:relative;
+  }
+  .device-shell::before{
+    content:"L'SA — hackathon build preview";
+    display:block;
+    text-align:center;
+    font-family:'Space Grotesk',monospace;
+    font-size:11px;
+    letter-spacing:.14em;
+    text-transform:uppercase;
+    color:#B9A6EE;
+    margin-bottom:14px;
+    opacity:.75;
+  }
+
+  .app-frame{
+    background:var(--paper);
+    border-radius: var(--radius-lg);
+    overflow:hidden;
+    box-shadow: 0 40px 90px -30px rgba(0,0,0,.65), 0 0 0 1px rgba(255,255,255,.06);
+    height:800px;
+    display:flex;
+    flex-direction:column;
+    position:relative;
+  }
+
+  @media (max-width: 480px){
+    body{ padding:0; align-items:stretch; justify-content:stretch; }
+    .device-shell::before{ display:none; }
+    .device-shell{ width:100%; }
+    .app-frame{
+      height:100vh;
+      height:100dvh;
+      width:100%;
+      border-radius:0;
+      box-shadow:none;
+    }
+  }
+
+  /* ============ native platform override (authoritative) ============
+     The media query above is the correct CSS-only signal for a real
+     mobile *browser*, but confirmed on-device (Redmi 9, Capacitor
+     WebView) that this alone was not reliably resulting in a true
+     full-viewport fill — the small-centered-card symptom observed
+     matches body's unconditional flex-centering + fixed 390px
+     .device-shell base width not being fully overridden. Rather than
+     trust the media query alone a second time, this is driven
+     explicitly by Capacitor.isNativePlatform() (see the boot script
+     near the end of this file), which is unambiguous — there is no
+     "is this actually a WebView" ambiguity the way a viewport-width
+     media query can have on some devices/OS versions. This class wins
+     regardless of screen width, so it's also correct on a tablet-size
+     native build, which the max-width:480px query would not cover. */
+  html.lsa-native, html.lsa-native body{
+    height:100%; margin:0; padding:0!important;
+    display:block!important;
+  }
+  html.lsa-native body{
+    align-items:stretch!important; justify-content:stretch!important;
+  }
+  html.lsa-native .device-shell{
+    width:100%!important; max-width:none!important;
+  }
+  html.lsa-native .device-shell::before{ display:none!important; }
+  html.lsa-native .app-frame{
+    width:100%!important;
+    height:100vh!important;
+    height:100dvh!important;
+    border-radius:0!important;
+    box-shadow:none!important;
+  }
+
+  /* ============ status bar (decorative) ============ */
+  .status-bar{
+    height:34px;
+    flex:none;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding:0 20px;
+    font-family:'Space Grotesk',monospace;
+    font-size:12px;
+    font-weight:600;
+    color:var(--ink);
+    background:var(--paper);
+    z-index:5;
+  }
+  .status-bar .dots{ letter-spacing:2px; opacity:.5; }
+
+  /* ============ tab content area ============ */
+  .screens{ flex:1; min-height:0; position:relative; }
+  .screen{
+    position:absolute; inset:0;
+    display:none;
+    flex-direction:column;
+    overflow-y:auto;
+    -webkit-overflow-scrolling:touch;
+  }
+  .screen.active{ display:flex; }
+
+  /* ============ bottom tab bar ============ */
+  .tabbar{
+    flex:none;
+    display:flex;
+    background:var(--surface);
+    border-top:1px solid var(--line);
+    padding:10px 6px calc(10px + env(safe-area-inset-bottom));
+    z-index:5;
+  }
+  .tabbtn{
+    flex:1;
+    background:none;
+    border:none;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:4px;
+    padding:6px 4px;
+    cursor:pointer;
+    color:var(--ink-soft);
+    border-radius: var(--radius-sm);
+    transition: color .2s var(--ease), background .2s var(--ease);
+  }
+  .tabbtn svg{ width:22px; height:22px; }
+  .tabbtn span{ font-size:11px; font-weight:700; letter-spacing:.01em; }
+  .tabbtn.is-active{ color:var(--violet-600); background:var(--violet-100); }
+  .tabbtn:hover{ color:var(--violet-600); }
+
+  /* =========================================================
+     TAB 1 — HOME
+     ========================================================= */
+
+  .call-strip{
+    flex:none;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:10px;
+    padding:10px 18px;
+    background:var(--violet-900);
+    color:#EDE4FF;
+    font-family:'Space Grotesk',monospace;
+    font-size:11px;
+    font-weight:500;
+    z-index:4;
+  }
+  .call-strip .dot{
+    width:6px; height:6px; border-radius:50%;
+    background:#7CF29A; flex:none; box-shadow:0 0 0 3px rgba(124,242,154,.18);
+  }
+  .call-strip.is-cached .dot{ background:var(--violet-300); box-shadow:0 0 0 3px rgba(196,176,245,.2); }
+  .call-strip .left{ display:flex; align-items:center; gap:8px; overflow:hidden; }
+  .call-strip .left b{ color:#fff; font-weight:700; white-space:nowrap; }
+  .call-strip .right{ opacity:.75; white-space:nowrap; }
+
+  .scene{
+    position:relative;
+    flex:none;
+    padding: 26px 22px 24px;
+    overflow:hidden;
+    color:#fff;
+    background: linear-gradient(180deg, var(--violet-900), #17092E 120%);
+    transition: background 1.1s var(--ease);
+  }
+  /* ambient glow/shimmer — driven by risk_level only, since that's
+     the only signal FortyGuard's real API actually gives us. No
+     rain/cloud/storm here: this API is heat intelligence, not a
+     general weather feed, and pretending otherwise would show
+     something the real integration can never produce. */
+  .scene .glow{
+    position:absolute; inset:-20%;
+    background: radial-gradient(closest-side, var(--sun-glow), transparent 70%);
+    opacity:.3;
+    filter:blur(10px);
+    animation: pulseGlow 5s ease-in-out infinite;
+  }
+  .scene .shimmer{
+    position:absolute; inset:0;
+    background:
+      linear-gradient(115deg, transparent 30%, rgba(255,150,60,.22) 45%, transparent 60%),
+      linear-gradient(245deg, transparent 30%, rgba(255,90,20,.16) 45%, transparent 60%);
+    background-size: 220% 220%;
+    animation: shimmerMove 6s ease-in-out infinite;
+    mix-blend-mode: screen;
+  }
+
+  @keyframes pulseGlow{ 0%,100%{ opacity:.24; transform:scale(1); } 50%{ opacity:.45; transform:scale(1.06); } }
+  @keyframes shimmerMove{ 0%,100%{ background-position:0% 30%, 100% 70%; } 50%{ background-position:100% 60%, 0% 30%; } }
+
+  /* ---- compact heat-figure window — a small card, not a full-screen
+     scene. One simple 2D figure that changes pose with risk_level:
+     standing normal → sweating → sheltering with water → going inside.
+     This is the thing that's meant to read instantly, without text. */
+  .figure-window{
+    position:relative; z-index:2;
+    width:104px; height:104px;
+    margin: 2px 0 16px;
+    border-radius: 20px;
+    background: rgba(255,255,255,.10);
+    border: 1px solid rgba(255,255,255,.16);
+    backdrop-filter: blur(4px);
+    display:flex; align-items:center; justify-content:center;
+    overflow:hidden;
+  }
+  .figure-window svg{ width:68px; height:68px; }
+  .figure-window .figure-label{
+    position:absolute; bottom:5px; left:0; right:0; text-align:center;
+    font-size:9px; font-weight:800; letter-spacing:.06em; text-transform:uppercase;
+    color:rgba(255,255,255,.72);
+  }
+  .drop{ animation: dropFall 1.4s ease-in infinite; }
+  .drop.d2{ animation-delay:.45s; }
+  .drop.d3{ animation-delay:.9s; }
+  @keyframes dropFall{ 0%{ opacity:0; transform:translateY(-2px);} 30%{opacity:1;} 100%{ opacity:0; transform:translateY(6px);} }
+  .doorglow{ animation: doorPulse 2.2s ease-in-out infinite; }
+  @keyframes doorPulse{ 0%,100%{ opacity:.55; } 50%{ opacity:1; } }
+
+  .scene .readout{ position:relative; z-index:2; }
+  .scene .loc-row{
+    display:flex; align-items:center; justify-content:space-between;
+    font-family:'Space Grotesk',monospace; font-size:12.5px; font-weight:600;
+    color:rgba(255,255,255,.82); margin-bottom:18px;
+  }
+  .scene .loc-row .src{
+    display:inline-flex; align-items:center; gap:5px;
+    background:rgba(255,255,255,.12); padding:4px 9px; border-radius:999px;
+    font-size:10.5px; letter-spacing:.03em;
+  }
+  .scene .temp-row{ display:flex; align-items:flex-start; gap:14px; }
+  .scene .temp-num{ font-size:76px; line-height:.9; font-weight:700; letter-spacing:-.03em; }
+  .scene .temp-num sup{ font-size:32px; font-weight:600; top:-.5em; }
+  .scene .cond-badge{
+    margin-top:8px;
+    display:inline-flex; align-items:center; gap:6px;
+    font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.08em;
+    padding:6px 12px; border-radius:999px;
+    background:rgba(255,255,255,.14);
+  }
+  .scene .cond-badge.risk-extreme{ background:#F2600C; color:#2A0900; }
+  .scene .cond-badge.risk-high{ background:#FDBA74; color:#3A1600; }
+  .scene .cond-badge.risk-moderate{ background:#E4D9FB; color:#3A2E63; }
+  .scene .cond-badge.risk-low{ background:rgba(255,255,255,.85); color:var(--violet-900); }
+
+  .decision{
+    position:relative; z-index:2; margin-top:20px;
+    background:rgba(255,255,255,.13);
+    backdrop-filter: blur(6px);
+    border:1px solid rgba(255,255,255,.18);
+    border-radius: var(--radius-md);
+    padding:14px 16px;
+    font-size:14.5px; font-weight:600; line-height:1.45;
+  }
+
+  /* ---- chat ---- */
+  .chat-wrap{ flex:1; display:flex; flex-direction:column; min-height:0; background:var(--paper); }
+  .chat-head{
+    padding:16px 20px 8px; display:flex; align-items:center; gap:10px;
+  }
+  .chat-head .avatar{
+    width:32px; height:32px; border-radius:10px; flex:none;
+    background:linear-gradient(140deg,var(--violet-500),var(--violet-900));
+    display:flex; align-items:center; justify-content:center;
+    color:#fff; font-family:'Space Grotesk'; font-weight:700; font-size:14px;
+  }
+  .chat-head h2{ margin:0; font-size:15px; }
+  .chat-head p{ margin:1px 0 0; font-size:11.5px; color:var(--ink-soft); }
+
+  .chat-log{ flex:1; overflow-y:auto; padding:10px 20px 6px; display:flex; flex-direction:column; gap:10px; }
+  .bubble{
+    max-width:84%; padding:10px 13px; border-radius:16px; font-size:13.5px; line-height:1.42;
+  }
+  .bubble.lsa{
+    align-self:flex-start; background:var(--surface); border:1px solid var(--line);
+    border-bottom-left-radius:5px; color:var(--ink);
+  }
+  .bubble.user{
+    align-self:flex-end; background:var(--violet-600); color:#fff;
+    border-bottom-right-radius:5px;
+  }
+
+  .quick-row{ display:flex; gap:8px; padding:2px 20px 10px; overflow-x:auto; }
+  .quick-row button{
+    flex:none; border:1px solid var(--line); background:var(--surface);
+    border-radius:999px; padding:7px 13px; font-size:12px; font-weight:700;
+    color:var(--violet-700); cursor:pointer;
+  }
+  .quick-row button:hover{ background:var(--violet-100); }
+
+  .chat-input-row{
+    flex:none; display:flex; gap:8px; padding:10px 16px calc(12px + env(safe-area-inset-bottom));
+    border-top:1px solid var(--line); background:var(--surface);
+  }
+  .chat-input-row input{
+    flex:1; border:1.5px solid var(--line); border-radius:999px;
+    padding:11px 16px; font-size:13.5px; font-family:inherit; background:var(--paper-dim);
+    color:var(--ink);
+  }
+  .chat-input-row input:focus{ border-color:var(--violet-500); background:#fff; }
+  .chat-input-row button.send{
+    width:42px; height:42px; border-radius:50%; border:none; flex:none;
+    background:var(--violet-600); color:#fff; cursor:pointer;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .chat-input-row button.send:hover{ background:var(--violet-700); }
+
+  /* =========================================================
+     TAB 2 — FREQUENCY & TOKENS
+     ========================================================= */
+  .pad{ padding:22px 20px 26px; }
+  .eyebrow{
+    font-family:'Space Grotesk',monospace; font-size:11px; font-weight:700;
+    letter-spacing:.12em; text-transform:uppercase; color:var(--violet-600); margin:0 0 6px;
+  }
+  .section-title{ margin:0 0 4px; font-size:20px; }
+  .section-sub{ margin:0 0 20px; font-size:12.5px; color:var(--ink-soft); }
+
+  .balance-card{
+    background:linear-gradient(135deg, var(--violet-700), var(--violet-900));
+    color:#fff; border-radius: var(--radius-md); padding:20px; margin-bottom:22px;
+    position:relative; overflow:hidden;
+  }
+  .balance-card::after{
+    content:""; position:absolute; width:180px; height:180px; border-radius:50%;
+    background:radial-gradient(closest-side, rgba(255,255,255,.14), transparent 70%);
+    top:-70px; right:-50px;
+  }
+  .balance-card .lbl{ font-size:11.5px; opacity:.75; font-weight:600; letter-spacing:.03em; }
+  .balance-card .num{ font-family:'Space Grotesk'; font-size:40px; font-weight:700; margin:2px 0 12px; }
+  .balance-card .stats{ display:flex; gap:18px; font-size:11.5px; position:relative; z-index:1; }
+  .balance-card .stats b{ display:block; font-family:'Space Grotesk'; font-size:14px; }
+
+  .tier-group{ display:flex; flex-direction:column; gap:10px; margin-bottom:22px; }
+  .tier-opt{
+    display:flex; align-items:center; justify-content:space-between;
+    border:1.5px solid var(--line); border-radius: var(--radius-sm); padding:13px 15px;
+    cursor:pointer; background:var(--surface); transition:border-color .15s, background .15s;
+  }
+  .tier-opt:hover{ border-color:var(--violet-300); }
+  .tier-opt.is-selected{ border-color:var(--violet-600); background:var(--violet-100); }
+  .tier-opt .t-name{ font-weight:700; font-size:13.5px; }
+  .tier-opt .t-window{ font-size:11.5px; color:var(--ink-soft); margin-top:1px; }
+  .tier-opt .t-cost{ font-family:'Space Grotesk'; font-weight:700; font-size:13px; color:var(--violet-700); }
+
+  .checkrow{ display:flex; justify-content:space-between; padding:9px 0; border-bottom:1px solid var(--line); font-size:12.5px; }
+  .checkrow:last-child{ border-bottom:none; }
+  .checkrow b{ font-family:'Space Grotesk'; }
+
+  .bundle-row{ display:flex; gap:10px; overflow-x:auto; padding-bottom:4px; margin-bottom:6px; }
+  .bundle-card{
+    flex:none; width:118px; border:1.5px solid var(--line); border-radius: var(--radius-sm);
+    padding:14px 12px; background:var(--surface); text-align:center;
+  }
+  .bundle-card.is-best{ border-color:var(--heat-500); background:#FFF6EE; position:relative; }
+  .bundle-card.is-best .tag{
+    position:absolute; top:-9px; left:50%; transform:translateX(-50%);
+    background:var(--heat-500); color:#fff; font-size:9px; font-weight:800;
+    letter-spacing:.05em; padding:3px 8px; border-radius:999px; white-space:nowrap;
+  }
+  .bundle-card .amt{ font-family:'Space Grotesk'; font-weight:700; font-size:18px; }
+  .bundle-card .price{ font-size:12px; color:var(--ink-soft); margin:2px 0 6px; }
+  .bundle-card .save{ font-size:10.5px; font-weight:700; color:var(--heat-500); }
+  .mock-note{ font-size:10.5px; color:var(--ink-soft); text-align:center; margin-top:2px; }
+
+  /* =========================================================
+     TAB 3 — PROFILE
+     ========================================================= */
+  .profile-head{ display:flex; align-items:center; gap:14px; margin-bottom:24px; }
+  .profile-head .pic{
+    width:56px; height:56px; border-radius:16px; flex:none;
+    background:linear-gradient(140deg,var(--violet-500),var(--violet-900));
+    display:flex; align-items:center; justify-content:center; color:#fff;
+    font-family:'Space Grotesk'; font-weight:700; font-size:20px;
+  }
+  .profile-head h2{ margin:0 0 2px; font-size:17px; }
+  .profile-head p{ margin:0; font-size:12px; color:var(--ink-soft); }
+
+  .list{ border:1px solid var(--line); border-radius: var(--radius-md); overflow:hidden; margin-bottom:20px; background:var(--surface); }
+  .list-item{
+    display:flex; align-items:center; gap:12px; padding:13px 15px;
+    border-bottom:1px solid var(--line); font-size:13.5px;
+  }
+  .list-item:last-child{ border-bottom:none; }
+  .list-item .ico{
+    width:30px; height:30px; border-radius:9px; flex:none;
+    background:var(--violet-100); color:var(--violet-700);
+    display:flex; align-items:center; justify-content:center;
+  }
+  .list-item .txt{ flex:1; }
+  .list-item .txt small{ display:block; color:var(--ink-soft); font-size:11px; margin-top:1px; }
+  .list-item .val{ font-size:12px; color:var(--ink-soft); }
+
+  .toggle{ width:38px; height:22px; border-radius:999px; background:var(--line); position:relative; flex:none; cursor:pointer; border:none; }
+  .toggle::after{ content:""; position:absolute; width:16px; height:16px; border-radius:50%; background:#fff; top:3px; left:3px; transition:transform .18s var(--ease); box-shadow:0 1px 3px rgba(0,0,0,.25); }
+  .toggle.is-on{ background:var(--violet-600); }
+  .toggle.is-on::after{ transform:translateX(16px); }
+
+  .placeholder-note{
+    font-size:10.5px; color:var(--violet-600); background:var(--violet-100);
+    padding:2px 7px; border-radius:6px; font-weight:700;
+  }
+
+  /* reduced motion: freeze the whole show */
+  @media (prefers-reduced-motion: reduce){
+    .scene .glow, .scene .shimmer, .drop, .doorglow{ animation:none !important; }
+    .scene .glow{ opacity:.3; }
+    .scene .shimmer{ opacity:.4; }
+  }
+
+  ::-webkit-scrollbar{ width:0; height:0; }
+</style>
+</head>
+<body>
+
+<div class="device-shell">
+  <div class="app-frame">
+
+    <div class="status-bar">
+      <span class="dots">●●●</span>
+      <span id="clock">10:35</span>
+      <span>🔋 97%</span>
+    </div>
+
+    <div class="screens">
+
+      <!-- =========================== TAB 1 : HOME =========================== -->
+      <section class="screen active" id="screen-home">
+
+        <div class="call-strip" id="callStrip">
+          <div class="left">
+            <span class="dot"></span>
+            <b id="callTier">standard</b>
+            <span id="callMeta">— no call yet</span>
+          </div>
+          <div class="right" id="callTokens">— tokens</div>
+        </div>
+
+        <div class="scene" id="scene">
+          <div class="glow" id="fxGlow"></div>
+          <div class="shimmer" id="fxShimmer"></div>
+
+          <div class="loc-row" style="position:relative;z-index:2;">
+            <span id="locName">Locating…</span>
+            <span class="src" id="locSrc">— </span>
+          </div>
+
+          <div class="figure-window" id="figureWindow" aria-live="polite">
+            <!-- pose SVG injected by JS, driven by risk_level -->
+          </div>
+
+          <div class="readout">
+            <div class="temp-row">
+              <div class="temp-num" id="tempNum">—<sup>°F</sup></div>
+            </div>
+            <div class="cond-badge" id="condBadge">—</div>
+          </div>
+
+          <div class="decision" id="decisionMsg">Checking conditions…</div>
+        </div>
+
+        <div class="chat-wrap">
+          <div class="chat-head">
+            <div class="avatar">L</div>
+            <div>
+              <h2>Ask L'SA</h2>
+              <p>Answers straight from the current reading — no guessing</p>
+            </div>
+          </div>
+
+          <div class="chat-log" id="chatLog"></div>
+
+          <div class="quick-row">
+            <button data-q="is it safe to go outside">safe to go out?</button>
+            <button data-q="how hot is it">how hot is it</button>
+            <button data-q="what's the risk level">what's the risk level</button>
+          </div>
+
+          <div class="chat-input-row">
+            <input id="chatInput" type="text" placeholder="Ask about the heat…" />
+            <button class="send" id="chatSend" aria-label="Send">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M4 12L20 4L14 20L11 13L4 12Z" stroke="white" stroke-width="1.8" stroke-linejoin="round"/></svg>
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- =========================== TAB 2 : FREQUENCY & TOKENS =========================== -->
+      <section class="screen" id="screen-tokens">
+        <div class="pad">
+
+          <div class="balance-card">
+            <div class="lbl">TOKEN BALANCE</div>
+            <div class="num" id="tBalance">—</div>
+            <div class="stats">
+              <div><b id="tSaved">—</b>saved</div>
+              <div><b id="tCacheRate">—</b>cache hits</div>
+              <div><b id="tBatchRate">—</b>batched</div>
+            </div>
+          </div>
+
+          <p class="eyebrow">check frequency</p>
+          <h3 class="section-title">How often should L'SA check?</h3>
+          <p class="section-sub">Slower checks cost fewer tokens — waiting is rewarded, never forced.</p>
+
+          <div class="tier-group" id="tierGroup">
+            <div class="tier-opt" data-tier="instant">
+              <div><div class="t-name">Instant</div><div class="t-window">up to every 5 min</div></div>
+              <div class="t-cost">3.0×</div>
+            </div>
+            <div class="tier-opt" data-tier="fast">
+              <div><div class="t-name">Fast</div><div class="t-window">up to every 30 min</div></div>
+              <div class="t-cost">1.5×</div>
+            </div>
+            <div class="tier-opt is-selected" data-tier="standard">
+              <div><div class="t-name">Standard</div><div class="t-window">up to every 2 hr</div></div>
+              <div class="t-cost">1.0×</div>
+            </div>
+            <div class="tier-opt" data-tier="batched">
+              <div><div class="t-name">Batched</div><div class="t-window">up to every 24 hr</div></div>
+              <div class="t-cost">0.3×</div>
+            </div>
+          </div>
+
+          <div class="list" style="margin-bottom:22px;">
+            <div class="checkrow"><span>Requests this session</span><b id="statReq">0</b></div>
+            <div class="checkrow"><span>Cache hits</span><b id="statCache">0 tokens each</b></div>
+            <div class="checkrow"><span>Loyalty status</span><b id="statLoyalty">building up…</b></div>
+          </div>
+
+          <p class="eyebrow">top up</p>
+          <h3 class="section-title">Token bundles</h3>
+          <p class="section-sub">Bigger bundles include bonus tokens — a real cost saving, shown up front.</p>
+
+          <div class="bundle-row">
+            <div class="bundle-card">
+              <div class="amt">100</div>
+              <div class="price">₹100</div>
+              <div class="save">no bonus</div>
+            </div>
+            <div class="bundle-card is-best">
+              <span class="tag">Best value</span>
+              <div class="amt">550</div>
+              <div class="price">₹450</div>
+              <div class="save">save ₹50</div>
+            </div>
+            <div class="bundle-card">
+              <div class="amt">1100</div>
+              <div class="price">₹850</div>
+              <div class="save">save ₹150+</div>
+            </div>
+          </div>
+          <p class="mock-note">Preview only — payment isn't wired up in this build.</p>
+
+        </div>
+      </section>
+
+      <!-- =========================== TAB 3 : PROFILE =========================== -->
+      <section class="screen" id="screen-profile">
+        <div class="pad">
+
+          <div class="profile-head">
+            <div class="pic">L</div>
+            <div>
+              <h2>Lucky</h2>
+              <p>Building L'SA · FortyGuard Hackathon 2026</p>
+            </div>
+          </div>
+
+          <p class="eyebrow">creator</p>
+          <div class="list">
+            <div class="list-item">
+              <div class="ico">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.58 2 12.25c0 4.53 2.87 8.37 6.84 9.73.5.1.68-.22.68-.49v-1.91c-2.78.62-3.37-1.36-3.37-1.36-.45-1.18-1.11-1.5-1.11-1.5-.91-.64.07-.63.07-.63 1 .07 1.53 1.05 1.53 1.05.9 1.57 2.34 1.12 2.91.86.09-.66.35-1.12.64-1.38-2.22-.26-4.56-1.14-4.56-5.07 0-1.12.39-2.04 1.03-2.76-.1-.26-.45-1.31.1-2.73 0 0 .84-.28 2.75 1.05a9.3 9.3 0 0 1 5 0c1.9-1.33 2.74-1.05 2.74-1.05.56 1.42.21 2.47.1 2.73.65.72 1.03 1.64 1.03 2.76 0 3.94-2.34 4.8-4.57 5.06.36.32.68.94.68 1.9v2.82c0 .27.18.6.69.49A10.02 10.02 0 0 0 22 12.25C22 6.58 17.52 2 12 2Z"/></svg>
+              </div>
+              <div class="txt">GitHub<small>source for this build</small></div>
+              <span class="placeholder-note">add link</span>
+            </div>
+            <div class="list-item">
+              <div class="ico">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.2c3.2 0 3.6 0 4.85.07 1.17.05 2.1.24 2.6.44a5.2 5.2 0 0 1 1.87 1.22 5.2 5.2 0 0 1 1.22 1.87c.2.5.39 1.43.44 2.6.06 1.25.07 1.65.07 4.85s0 3.6-.07 4.85c-.05 1.17-.24 2.1-.44 2.6a5.2 5.2 0 0 1-1.22 1.87 5.2 5.2 0 0 1-1.87 1.22c-.5.2-1.43.39-2.6.44-1.25.06-1.65.07-4.85.07s-3.6 0-4.85-.07c-1.17-.05-2.1-.24-2.6-.44a5.2 5.2 0 0 1-1.87-1.22 5.2 5.2 0 0 1-1.22-1.87c-.2-.5-.39-1.43-.44-2.6C2.2 15.6 2.2 15.2 2.2 12s0-3.6.07-4.85c.05-1.17.24-2.1.44-2.6A5.2 5.2 0 0 1 3.93 2.68 5.2 5.2 0 0 1 5.8 1.46c.5-.2 1.43-.39 2.6-.44C9.65 1 10.05 1 12 1v1.2Zm0 3a6.6 6.6 0 1 0 0 13.2 6.6 6.6 0 0 0 0-13.2Zm0 10.9a4.3 4.3 0 1 1 0-8.6 4.3 4.3 0 0 1 0 8.6Zm6.86-11.15a1.54 1.54 0 1 1-3.08 0 1.54 1.54 0 0 1 3.08 0Z"/></svg>
+              </div>
+              <div class="txt">Instagram<small>build progress + demo clips</small></div>
+              <span class="placeholder-note">add link</span>
+            </div>
+          </div>
+
+          <p class="eyebrow">general</p>
+          <div class="list">
+            <div class="list-item">
+              <div class="ico">°F</div>
+              <div class="txt">Units</div>
+              <span class="val" id="unitVal">Fahrenheit</span>
+            </div>
+            <div class="list-item">
+              <div class="ico">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M12 22a2.5 2.5 0 0 0 2.45-2h-4.9A2.5 2.5 0 0 0 12 22Zm7-6.2V11a7 7 0 0 0-5.5-6.84V3a1.5 1.5 0 0 0-3 0v1.16A7 7 0 0 0 5 11v4.8L3 17.8V19h18v-1.2l-2-2Z"/></svg>
+              </div>
+              <div class="txt">Heat alerts<small>on-screen + spoken, extreme/high only</small></div>
+              <button class="toggle is-on" id="toggleAlerts"></button>
+            </div>
+            <div class="list-item">
+              <div class="ico">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20Zm1 15h-2v-6h2v6Zm0-8h-2V7h2v2Z"/></svg>
+              </div>
+              <div class="txt">Location<small id="locStatusLine">checking permission…</small></div>
+              <span class="val" id="locStatusVal">—</span>
+            </div>
+          </div>
+
+          <p class="eyebrow">more</p>
+          <div class="list">
+            <div class="list-item"><div class="ico">?</div><div class="txt">Support</div></div>
+            <div class="list-item"><div class="ico">♥</div><div class="txt">Follow us</div></div>
+            <div class="list-item"><div class="ico">§</div><div class="txt">Terms &amp; conditions</div></div>
+          </div>
+
+          <!-- Advanced/developer settings — collapsed by default, one
+               tap to expand. Not part of the normal demo flow on
+               purpose: this is where the FortyGuard API key lives,
+               and it should never be visible in a demo recording
+               unless someone deliberately opens this section. -->
+          <p class="eyebrow" id="advToggle" style="cursor:pointer; user-select:none;">
+            advanced <span id="advCaret" style="opacity:.6;">▸</span>
+          </p>
+          <div class="list" id="advPanel" style="display:none;">
+            <div class="list-item" style="flex-direction:column; align-items:stretch; gap:8px;">
+              <div class="txt" style="margin-bottom:2px;">FortyGuard API key<small>stored on-device only, never shown in demo view</small></div>
+              <input type="password" id="apiKeyInput" placeholder="paste key here"
+                autocomplete="off" autocapitalize="off" spellcheck="false"
+                style="width:100%; padding:9px 10px; border-radius:10px; border:1px solid var(--line); font-family:'Space Grotesk',monospace; font-size:12px; background:var(--paper-dim); color:var(--ink);" />
+              <div style="display:flex; gap:8px; align-items:center;">
+                <button id="apiKeySave" style="flex:none; padding:8px 14px; border-radius:10px; border:none; background:var(--violet-600); color:#fff; font-weight:700; font-size:12px; cursor:pointer;">Save</button>
+                <span id="apiKeyStatus" style="font-size:11px; color:var(--ink-soft);"></span>
+              </div>
+            </div>
+            <div class="list-item">
+              <div class="txt">Mock mode<small>use fake data instead of real FortyGuard calls</small></div>
+              <button class="toggle is-on" id="toggleMockMode"></button>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+    </div>
+
+    <nav class="tabbar">
+      <button class="tabbtn is-active" data-tab="home">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M4 11L12 4l8 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M6 10v9h12v-9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span>Home</span>
+      </button>
+      <button class="tabbtn" data-tab="tokens">
+        <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="8.5" stroke="currentColor" stroke-width="2"/><path d="M12 8v8M9 10.5c0-1 1-1.8 3-1.8s3 .8 3 1.8-1 1.5-3 1.5-3 .6-3 1.6 1 1.9 3 1.9 3-.7 3-1.7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+        <span>Frequency</span>
+      </button>
+      <button class="tabbtn" data-tab="profile">
+        <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="3.4" stroke="currentColor" stroke-width="2"/><path d="M5 20c1-3.6 4-5.5 7-5.5s6 1.9 7 5.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        <span>Profile</span>
+      </button>
+    </nav>
+
+  </div>
+</div>
+
+<script type="module">
+/* =========================================================
+   SERVICE LAYER — everything the app needs now lives on-device.
+   No Flask backend, no fetch() to localhost, no CORS question at
+   all for these calls. The FortyGuard call itself (inside
+   checkTemperature, when not in mock mode) goes through Capacitor's
+   native HTTP bridge — see src/services/fortyguardClient.js for why.
+   ========================================================= */
+import {
+  checkTemperature, getTokenBalance, getTokenSavings,
+  resolveLocation as resolveDeviceLocation, getLastKnownLocation,
+  initNotifications, statusSummary, setApiKey, setMockMode,
+} from '../services/appService.js';
+import { TEMPLATES, decisionFor } from '../services/templates.js';
+
+/* =========================================================
+   TAB SWITCHING
+   ========================================================= */
+document.querySelectorAll('.tabbtn').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('.tabbtn').forEach(b=>b.classList.remove('is-active'));
+    document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+    btn.classList.add('is-active');
+    document.getElementById('screen-'+btn.dataset.tab).classList.add('active');
+  });
+});
+
+/* =========================================================
+   CLOCK (decorative status bar)
+   ========================================================= */
+function tickClock(){
+  const d = new Date();
+  let h = d.getHours(), m = d.getMinutes();
+  const ap = h>=12 ? 'PM':'AM';
+  h = h%12; if(h===0) h=12;
+  document.getElementById('clock').textContent = `${h}:${String(m).padStart(2,'0')} ${ap}`;
+}
+tickClock(); setInterval(tickClock, 15000);
+
+/* Mock vs. real mode is now decided by on-device config (see the
+   advanced settings panel in the Profile tab), not by whether a
+   network call happened to fail. checkTemperature()/getTokenBalance()/
+   getTokenSavings() are imported directly from appService.js above —
+   same names, same call shape the rest of this file already uses,
+   so nothing below this point needed to change except the location/
+   settings wiring further down. */
+
+/* =========================================================
+   HEAT-REACTIVE FIGURE — the signature element
+   risk_level ∈ low|moderate|high|extreme (confirmed backend values —
+   this is the ONLY weather-adjacent signal FortyGuard's real API
+   gives us; there is no rain/cloud/storm data, so nothing here is
+   driven by anything the real API can't actually provide)
+
+   A small window, not a full-screen scene: one simple 2D figure
+   that reacts to how hot it actually is —
+     low      → standing normally
+     moderate → sweating
+     high     → sheltering, holding water
+     extreme  → heading inside
+   ========================================================= */
+const scene = document.getElementById('scene');
+const figureWindow = document.getElementById('figureWindow');
+const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+const FIGURE_SVGS = {
+  low: `
+    <svg viewBox="0 0 64 64" fill="none">
+      <!-- head -->
+      <circle cx="32" cy="14" r="7.5" fill="#EDE4FF"/>
+      <!-- torso: solid filled flat-design shape, not a stroke line -->
+      <path d="M23 24c0-2.8 4-4.5 9-4.5s9 1.7 9 4.5v16c0 2-1.6 3.5-3.5 3.5h-11c-1.9 0-3.5-1.5-3.5-3.5V24Z" fill="#EDE4FF"/>
+      <!-- arms, relaxed at sides with a slight bend at the elbow -->
+      <path d="M23 26c-2.5.6-4.5 3-5 7.5" stroke="#EDE4FF" stroke-width="4.2" stroke-linecap="round"/>
+      <path d="M41 26c2.5.6 4.5 3 5 7.5" stroke="#EDE4FF" stroke-width="4.2" stroke-linecap="round"/>
+      <!-- legs, standing normally -->
+      <path d="M28 43.5l-3 14" stroke="#EDE4FF" stroke-width="5" stroke-linecap="round"/>
+      <path d="M36 43.5l3 14" stroke="#EDE4FF" stroke-width="5" stroke-linecap="round"/>
+    </svg>`,
+  moderate: `
+    <svg viewBox="0 0 64 64" fill="none">
+      <circle cx="30" cy="15" r="7.5" fill="#EDE4FF"/>
+      <path d="M21 25c0-2.8 4-4.5 9-4.5s9 1.7 9 4.5v16c0 2-1.6 3.5-3.5 3.5h-11c-1.9 0-3.5-1.5-3.5-3.5V25Z" fill="#EDE4FF"/>
+      <path d="M21 27c-2.5.6-4.3 3.2-4.5 7.8" stroke="#EDE4FF" stroke-width="4.2" stroke-linecap="round"/>
+      <path d="M39 27c2.6.9 4.6 3.6 5.5 8" stroke="#EDE4FF" stroke-width="4.2" stroke-linecap="round"/>
+      <path d="M26 44.5l-3 14" stroke="#EDE4FF" stroke-width="5" stroke-linecap="round"/>
+      <path d="M34 44.5l3 14" stroke="#EDE4FF" stroke-width="5" stroke-linecap="round"/>
+      <!-- sweat drops, unchanged in spirit from the original -->
+      <path class="drop" d="M42 10c1.6 2 2.6 3.6 2.6 5a2.6 2.6 0 1 1-5.2 0c0-1.4 1-3 2.6-5Z" fill="#8FD3FF"/>
+      <path class="drop d2" d="M20 7c1.4 1.8 2.3 3.2 2.3 4.4a2.3 2.3 0 1 1-4.6 0c0-1.2.9-2.6 2.3-4.4Z" fill="#8FD3FF"/>
+      <path class="drop d3" d="M47 22c1.3 1.6 2 2.9 2 4a2 2 0 1 1-4 0c0-1.1.7-2.4 2-4Z" fill="#8FD3FF"/>
+    </svg>`,
+  high: `
+    <svg viewBox="0 0 64 64" fill="none">
+      <!-- umbrella, filled canopy -->
+      <path d="M12 23a20 20 0 0 1 40 0Z" fill="#FFB65C"/>
+      <rect x="30.5" y="21" width="3" height="15" rx="1.5" fill="#D98A2B"/>
+      <!-- figure sheltering underneath, solid torso -->
+      <circle cx="32" cy="38" r="7" fill="#EDE4FF"/>
+      <path d="M24 49c0-2.6 3.6-4 8-4s8 1.4 8 4v10c0 1.7-1.4 3-3 3h-10c-1.7 0-3-1.3-3-3V49Z" fill="#EDE4FF"/>
+      <!-- one arm up holding the umbrella handle, one arm holding water bottle -->
+      <path d="M27 47c-1.5-3-1.5-7 1.5-10.5" stroke="#EDE4FF" stroke-width="3.8" stroke-linecap="round"/>
+      <path d="M39 48c2.6.6 4.8 2.6 5.6 6" stroke="#EDE4FF" stroke-width="3.8" stroke-linecap="round"/>
+      <!-- water bottle in hand -->
+      <rect x="42" y="52" width="6" height="9" rx="2" fill="#8FD3FF"/>
+      <rect x="43.6" y="50" width="2.8" height="3" rx="1" fill="#8FD3FF"/>
+      <!-- legs -->
+      <path d="M28 62l-1-3" stroke="#EDE4FF" stroke-width="4.4" stroke-linecap="round"/>
+      <path d="M36 62l1-3" stroke="#EDE4FF" stroke-width="4.4" stroke-linecap="round"/>
+    </svg>`,
+  extreme: `
+    <svg viewBox="0 0 64 64" fill="none">
+      <!-- house, filled roof + wall -->
+      <path d="M8 34 32 18l24 16v26a2 2 0 0 1-2 2H10a2 2 0 0 1-2-2V34Z" fill="#3A2060" stroke="#FFD3A6" stroke-width="2.2" stroke-linejoin="round"/>
+      <!-- glowing doorway the figure is heading into -->
+      <rect x="25" y="40" width="14" height="20" rx="2" class="doorglow" fill="#F2600C"/>
+      <!-- figure mid-stride entering the doorway, solid torso, walking pose -->
+      <circle cx="17" cy="46" r="6" fill="#EDE4FF"/>
+      <path d="M11 55c0-2.4 3-3.8 6-3.8s6 1.4 6 3.8v6.5c0 1.4-1.1 2.5-2.5 2.5h-7c-1.4 0-2.5-1.1-2.5-2.5V55Z" fill="#EDE4FF"/>
+      <path d="M11 56c-1.8.8-3 2.6-3.4 5.4" stroke="#EDE4FF" stroke-width="3.4" stroke-linecap="round"/>
+      <path d="M23 56c1.6 1 2.6 2.6 2.8 5" stroke="#EDE4FF" stroke-width="3.4" stroke-linecap="round"/>
+      <!-- legs mid-stride, one forward one back -->
+      <path d="M14 64.5l-2-6" stroke="#EDE4FF" stroke-width="4" stroke-linecap="round"/>
+      <path d="M20 64.5l3-7.5" stroke="#EDE4FF" stroke-width="4" stroke-linecap="round"/>
+    </svg>`,
+};
+const FIGURE_LABELS = { low:'calm', moderate:'sweating', high:'seeking shade', extreme:'heading inside' };
+
+function renderFigure(risk){
+  const key = FIGURE_SVGS[risk] ? risk : 'low';
+  figureWindow.innerHTML = FIGURE_SVGS[key] +
+    `<span class="figure-label">${FIGURE_LABELS[key]}</span>`;
+}
+
+function renderScene(risk){
+  document.getElementById('fxGlow').style.display = 'none';
+  document.getElementById('fxShimmer').style.display = 'none';
+
+  if(risk === 'extreme'){
+    scene.style.background = 'linear-gradient(180deg, #7A2E10, #241046 130%)';
+    document.getElementById('fxShimmer').style.display = 'block';
+    document.getElementById('fxGlow').style.display = 'block';
+  } else if(risk === 'high'){
+    scene.style.background = 'linear-gradient(180deg, #5C2A18, #241046 130%)';
+    document.getElementById('fxGlow').style.display = 'block';
+  } else if(risk === 'moderate'){
+    scene.style.background = 'linear-gradient(180deg, #3A2560, #17092E 120%)';
+    document.getElementById('fxGlow').style.display = 'block';
+  } else { // low
+    scene.style.background = 'linear-gradient(180deg, var(--violet-900), #17092E 120%)';
+  }
+
+  renderFigure(risk);
+}
+
+
+/* =========================================================
+   TEMPLATE WHITELIST — imported from templates.js, the single
+   shared source both the UI and TTS use. Fixed sentences only;
+   the app fills {temp}/{risk_level}, it never invents new phrasing.
+   ========================================================= */
+
+/* =========================================================
+   CHAT — simple 3-intent keyword classifier + Template Whitelist.
+   Deliberately NOT a chatbot: no free generation, ever.
+   ========================================================= */
+const RISK_WORDS  = ["safe","risky","dangerous","should i go","outside","go out","risk level","risk"];
+const TEMP_WORDS  = ["how hot","temperature","degrees","hot is it"];
+const GEN_WORDS   = ["how hot","how's it","conditions","what's it like"];
+
+function classifyIntent(text){
+  const low = text.toLowerCase();
+  if(RISK_WORDS.some(k=>low.includes(k))) return 'risk';
+  if(TEMP_WORDS.some(k=>low.includes(k))) return 'temp';
+  if(GEN_WORDS.some(k=>low.includes(k)))  return 'general';
+  return 'unknown';
+}
+function answerFor(intent, t){
+  if(!t) return "Data is still loading, give me a second";
+  if(intent==='risk')    return (TEMPLATES[`${t.risk_level}_risk`] || TEMPLATES.fallback)(t);
+  if(intent==='temp')    return TEMPLATES.general_status(t);
+  if(intent==='general') return TEMPLATES.general_status(t);
+  return "That doesn't look heat-related — ask me about temperature or risk";
+}
+
+const chatLog = document.getElementById('chatLog');
+function addBubble(text, who){
+  const b = document.createElement('div');
+  b.className = 'bubble ' + who;
+  b.textContent = text;
+  chatLog.appendChild(b);
+  chatLog.scrollTop = chatLog.scrollHeight;
+}
+
+let currentReading = null;
+
+document.getElementById('chatSend').addEventListener('click', sendChat);
+document.getElementById('chatInput').addEventListener('keydown', e=>{ if(e.key==='Enter') sendChat(); });
+document.querySelectorAll('.quick-row button').forEach(b=>{
+  b.addEventListener('click', ()=>{ document.getElementById('chatInput').value = b.dataset.q; sendChat(); });
+});
+function sendChat(){
+  const input = document.getElementById('chatInput');
+  const text = input.value.trim();
+  if(!text) return;
+  addBubble(text, 'user');
+  input.value = '';
+  const intent = classifyIntent(text);
+  setTimeout(()=> addBubble(answerFor(intent, currentReading), 'lsa'), 260);
+}
+
+/* =========================================================
+   HOME TAB — load a reading, drive scene + call strip + decision
+   ========================================================= */
+function fmtAgo(ts){
+  const s = Math.max(0, Math.floor(Date.now()/1000 - ts));
+  if(s < 60) return s+'s ago';
+  if(s < 3600) return Math.floor(s/60)+'m ago';
+  return Math.floor(s/3600)+'h ago';
+}
+
+// Pure display formatting of coordinates we already have — never
+// invents a city name we haven't actually geocoded.
+function formatLocationLabel(location){
+  if(!location.includes(',')) return location; // known demo-city name, show as-is
+  const [lat, lng] = location.split(',').map(Number);
+  if(Number.isNaN(lat) || Number.isNaN(lng)) return location;
+  const ns = lat >= 0 ? 'N' : 'S';
+  const ew = lng >= 0 ? 'E' : 'W';
+  return `${Math.abs(lat).toFixed(2)}°${ns}, ${Math.abs(lng).toFixed(2)}°${ew}`;
+}
+
+async function loadReading(location, tier, eventTrigger){
+  const res = await checkTemperature(location, eventTrigger, tier);
+
+  if(res.data === null){
+    // No fresh data this call (e.g. no_qualifying_trigger, or a
+    // fetch failure) — this must never leave the screen frozen with
+    // stale numbers and no explanation. If we have a previous reading
+    // in hand, keep showing it (that IS still accurate — nothing
+    // changed) but make the decision line honest about why nothing
+    // moved instead of silently doing nothing, which read as "static/
+    // fake data" during real-device testing even though the
+    // underlying checkTemperature() call was genuinely live.
+    const msg = res.reason === 'no_qualifying_trigger'
+      ? "no fresh check needed right now — showing last known reading"
+      : "couldn't get a reading — try again in a moment";
+    document.getElementById('decisionMsg').textContent = msg;
+    if(!currentReading){
+      // No previous reading AT ALL (first-ever load hit this branch)
+      // — nothing to fall back to, so say so explicitly rather than
+      // leaving tempNum/condBadge/figure blank with no explanation.
+      document.getElementById('tempNum').innerHTML = '—';
+      document.getElementById('condBadge').textContent = 'NO DATA';
+      document.getElementById('condBadge').className = 'cond-badge';
+    }
+    return;
+  }
+
+  currentReading = res.data;
+  renderScene(res.data.risk_level);
+
+  document.getElementById('locName').textContent = formatLocationLabel(res.data.location);
+  document.getElementById('locSrc').textContent = res.cached ? 'cached' : 'live';
+  document.getElementById('tempNum').innerHTML = `${res.data.temp_f}<sup>°F</sup>`;
+  const badge = document.getElementById('condBadge');
+  badge.textContent = res.data.risk_level.toUpperCase() + ' RISK';
+  badge.className = 'cond-badge risk-' + res.data.risk_level;
+  document.getElementById('decisionMsg').textContent = decisionFor(res.data);
+
+  const strip = document.getElementById('callStrip');
+  strip.classList.toggle('is-cached', !!res.cached);
+  document.getElementById('callTier').textContent = res.cached ? 'cached' : (res.cost?.tier || tier);
+  document.getElementById('callMeta').textContent =
+    (res.cached ? `age ${res.cache_age_sec}s` : `waited ${res.cost?.waited_sec ?? 0}s`) +
+    ' · ' + fmtAgo(res.data.fetched_at);
+  document.getElementById('callTokens').textContent = `${res.tokens_charged} tokens · ${res.data.source}`;
+
+  refreshTokenPanel();
+}
+
+/* =========================================================
+   TOKENS TAB
+   ========================================================= */
+let selectedTier = 'standard';
+document.querySelectorAll('.tier-opt').forEach(opt=>{
+  opt.addEventListener('click', async ()=>{
+    document.querySelectorAll('.tier-opt').forEach(o=>o.classList.remove('is-selected'));
+    opt.classList.add('is-selected');
+    selectedTier = opt.dataset.tier;
+    // getStoredCoords() is async now (Preferences, not localStorage) —
+    // fall through to the last resolved reading first since that's
+    // already in hand synchronously and avoids an extra storage read
+    // on every tier tap.
+    const loc = currentReading?.location || (await getLastKnownLocation()) || 'phoenix';
+    loadReading(loc, selectedTier, 'manual_refresh');
+  });
+});
+
+async function refreshTokenPanel(){
+  const balance = await getTokenBalance();
+  const savings = await getTokenSavings();
+  document.getElementById('tBalance').textContent = balance ?? '—';
+  if(savings){
+    document.getElementById('tSaved').textContent = savings.savings.saved;
+    document.getElementById('tCacheRate').textContent = savings.cache_hit_rate_pct + '%';
+    document.getElementById('tBatchRate').textContent = savings.batched_tier_usage_pct + '%';
+    document.getElementById('statReq').textContent = savings.savings.requests;
+    document.getElementById('statLoyalty').textContent = savings.loyalty_reward || 'building up…';
+  }
+}
+
+/* =========================================================
+   PROFILE TAB / APP BOOT — coordinates-first location.
+   The fallback chain (stored coords → live GPS → last-known →
+   hardcoded 'phoenix') now lives in src/services/geolocation.js,
+   using Capacitor's Geolocation plugin instead of
+   navigator.geolocation. This just calls it and updates the UI
+   status labels from whatever it reports back.
+   ========================================================= */
+async function resolveLocation(){
+  const statusLine = document.getElementById('locStatusLine');
+  const statusVal  = document.getElementById('locStatusVal');
+
+  const result = await resolveDeviceLocation();
+  statusLine.textContent = result.statusLine;
+  statusVal.textContent = result.statusVal;
+  loadReading(result.coordStr, selectedTier, result.trigger);
+}
+
+document.getElementById('toggleAlerts').addEventListener('click', function(){
+  this.classList.toggle('is-on');
+});
+
+/* =========================================================
+   ADVANCED SETTINGS — API key entry + mock-mode toggle.
+   Collapsed by default; per explicit instruction this should never
+   be visible in a demo recording unless deliberately opened.
+   ========================================================= */
+const advToggle = document.getElementById('advToggle');
+const advPanel  = document.getElementById('advPanel');
+const advCaret  = document.getElementById('advCaret');
+let advOpen = false;
+advToggle.addEventListener('click', ()=>{
+  advOpen = !advOpen;
+  advPanel.style.display = advOpen ? 'flex' : 'none';
+  advPanel.style.flexDirection = 'column';
+  advPanel.style.gap = '2px';
+  advCaret.textContent = advOpen ? '▾' : '▸';
+});
+
+document.getElementById('apiKeySave').addEventListener('click', async ()=>{
+  const input = document.getElementById('apiKeyInput');
+  const status = document.getElementById('apiKeyStatus');
+  await setApiKey(input.value.trim());
+  input.value = ''; // never leave the key sitting visible in the field after save
+  status.textContent = 'saved';
+  setTimeout(()=>{ status.textContent = ''; }, 2000);
+});
+
+const mockToggle = document.getElementById('toggleMockMode');
+(async ()=>{
+  const status = await statusSummary();
+  mockToggle.classList.toggle('is-on', status.mock_mode);
+})();
+mockToggle.addEventListener('click', async function(){
+  this.classList.toggle('is-on');
+  await setMockMode(this.classList.contains('is-on'));
+});
+
+/* =========================================================
+   BOOT
+   ========================================================= */
+addBubble("Hi — ask me if it's safe out there, or how hot it is.", 'lsa');
+initNotifications();
+resolveLocation();
+</script>
+</body>
+</html>
