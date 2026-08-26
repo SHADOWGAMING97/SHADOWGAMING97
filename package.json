@@ -1,13 +1,14 @@
 {
   "name": "lsa-heat-intelligence",
   "version": "1.0.0",
-  "description": "L'SA — standalone Android heat intelligence app",
+  "description": "L'SA — hyperlocal heat intelligence, standalone Android app (Capacitor port of the LSA_Life_Change Flask backend, zero server dependency)",
   "type": "module",
   "scripts": {
     "build:web": "vite build",
-    "sync": "npm run build:web && npx cap sync android",
+    "sync": "npx cap sync android",
+    "verify": "node verify-build.js",
     "open:android": "npx cap open android",
-    "build:android": "npm run sync && cd android && ./gradlew assembleDebug"
+    "build:android": "npx cap sync android && node verify-build.js && cd android && ./gradlew assembleDebug"
   },
   "dependencies": {
     "@capacitor/android": "^6.0.0",
@@ -16,11 +17,11 @@
     "@capacitor/geolocation": "^6.0.0",
     "@capacitor/status-bar": "^6.0.0",
     "@capacitor-community/text-to-speech": "5.1.0",
-    "@capawesome-team/capacitor-android-foreground-service": "^6.2.0"
+    "@capawesome-team/capacitor-android-foreground-service": "^6.0.0"
   },
   "devDependencies": {
-    "@capacitor/cli": "^6.0.0",
     "typescript": "^5.9.3",
-    "vite": "^7.1.7"
+    "vite": "^7.1.7",
+    "@capacitor/cli": "^6.0.0"
   }
 }
