@@ -94,6 +94,70 @@ Two changes this round, on top of the 5 critical fixes above:
    confirming the earlier plugin-not-registered diagnostic (see Issue
    4 above) still works correctly. All 5 passed.
 
+## URGENT — the last built APK ("Kira.apk") did not contain this app's real logic at all
+
+Inspected the actual APK that got built and installed (an APK is a zip
+— extracted and read its contents directly, no execution needed).
+Found the root cause with certainty:
+
+**The shipped `index.html` inside that APK has the correct layout,
+CSS, and structural markup — but its entire `<script type="module">`
+block (all the real logic: `checkTemperature`, the notification/TTS
+wiring, the FortyGuard client) is completely absent.** In its place
+was a reference to a separately bundled, Vite-generated JS chunk that,
+on inspection, turned out to be nothing but Vite's own module-preload
+runtime boilerplate — none of this project's actual function names
+exist anywhere in it. This explains every symptom at once: the "40°F /
+Hi Lucky" text is static HTML with nothing left to ever replace it,
+and no notification ever fires because the only code that would call
+`updateStatusNotification()`/`speakIfCritical()` is inside the missing
+script.
+
+**Root cause: this project does not need or want a bundler.**
+`src/www/index.html` is a single, self-contained file with a plain
+inline `<script type="module">` and relative `../services/*.js`
+imports — `npx cap sync android` is supposed to copy `src/www/` (this
+project's `webDir`, see `capacitor.config.ts`) straight into the
+Android assets folder, completely unmodified. Somewhere in whatever
+produced `Kira.apk`, this file was instead run through a Vite build
+step (visible from the `modulepreload`/hashed-chunk-filename pattern
+in the output), which is designed for a very different kind of
+multi-entry JS project structure than this one — and that mismatched
+process silently dropped the actual app logic while keeping the
+markup, rather than erroring loudly.
+
+**Fixed this round: it is now structurally difficult to repeat this
+by accident.** Added `verify-build.js` — checks the ACTUAL files under
+`android/app/src/main/assets/public/` (not the source tree, which was
+never the problem) for the presence of the app's real function names.
+`npm run build:android` now runs this check between `cap sync` and the
+actual Gradle build, and stops immediately (non-zero exit, Gradle
+never runs) if the logic is missing — verified this against a
+reconstruction of exactly the broken build that shipped (correctly
+fails) and against this project's real source (correctly passes).
+
+**What to tell whoever builds this next, in plain terms: do not run
+`vite build`, `npm run build` from some unrelated template, or any
+other bundling/compilation step on this project before `cap sync`.
+The only commands this project needs are `npm install`, `npx cap sync
+android`, then a normal Gradle/Android Studio build — nothing else.**
+
+## Status bar / "battery, time showing in UI"
+
+Confirmed this is the phone's own Android system status bar (clock,
+signal, battery %) — not anything this app renders. No app, native or
+web, can remove that on stock Android without a special permission
+Google restricts to kiosk/launcher-category apps specifically, so
+there is no code fix that makes it disappear entirely. What IS a real,
+standard thing professional apps do (added this round, in
+`capacitor.config.ts`): configure the status bar to overlay/blend into
+the app's own content edge-to-edge (transparent background, app draws
+behind it) instead of sitting in a separate opaque colored strip —
+this needs `@capacitor/status-bar` installed (`npm install
+@capacitor/status-bar`) for the config option to take effect; the
+config entry is in place, the dependency install is a one-line step
+left for your machine since it's a new package addition.
+
 ## Setup (run these on your own machine — real npm/network access needed)
 
 ```bash

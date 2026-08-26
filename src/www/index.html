@@ -1120,6 +1120,25 @@ mockToggle.addEventListener('click', async function(){
 addBubble("Hi — ask me if it's safe out there, or how hot it is.", 'lsa');
 initNotifications();
 resolveLocation();
+
+// Status bar overlay — dynamic import + defensive try/catch so this
+// never breaks app boot if @capacitor/status-bar isn't installed yet
+// (it's a new dependency added this round; the config entry in
+// capacitor.config.ts alone isn't sufficient on all Capacitor
+// versions, this call is what actually activates it at runtime).
+(async () => {
+  try {
+    const { StatusBar, Style } = await import('@capacitor/status-bar');
+    await StatusBar.setOverlaysWebView({ overlay: true });
+    await StatusBar.setStyle({ style: Style.Dark });
+    await StatusBar.setBackgroundColor({ color: '#00000000' });
+  } catch (e) {
+    // Plugin not installed/synced yet, or running in a plain browser
+    // preview where it doesn't apply at all — never let this block
+    // the rest of the app.
+    console.warn("[L'SA] status bar overlay not applied:", e.message || e);
+  }
+})();
 </script>
 </body>
 </html>
