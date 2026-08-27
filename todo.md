@@ -28,3 +28,6 @@ Add a Vite build that bundles the unchanged UI/service source, point Capacitor `
 - [x] Generate a reference-matched character/hero scene asset.
 - [x] Deliver the refreshed source and APK while preserving all fixed notification/API logic.
 - [x] Make the GitHub Android workflow reapply the native foreground-service manifest and notification icon after `npx cap add android`.
+- [x] Fix "API connection fail" by improving FortyGuard request reliability and error visibility.
+- [x] Replace the current silhouette hero with a more appealing LSA character/mascot.
+- [x] Rebuild and verify the final competition-ready APK.

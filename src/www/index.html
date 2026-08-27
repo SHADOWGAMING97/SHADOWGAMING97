@@ -280,11 +280,14 @@
     width:100%; height:200px;
     margin: 0 0 20px;
     border-radius: var(--radius-md);
-    background: url('/manus-storage/lsa_hero_c0ed6c46.png') center/cover no-repeat;
+    background-image: url('/manus-storage/lsa_character_scene_0afe7b20.png'), url('./assets/lsa_character_scene.png');
+    background-position: center;
+    background-size: cover;
+    background-repeat: no-repeat;
     display:flex; align-items:center; justify-content:center;
     overflow:hidden;
   }
-  .figure-window svg{ width:68px; height:68px; }
+  .figure-window svg{ display:none; }
   .figure-window .figure-label{
     position:absolute; bottom:5px; left:0; right:0; text-align:center;
     font-size:9px; font-weight:800; letter-spacing:.06em; text-transform:uppercase;
@@ -879,8 +882,10 @@ const FIGURE_LABELS = { low:'calm', moderate:'sweating', high:'seeking shade', e
 
 function renderFigure(risk){
   const key = FIGURE_SVGS[risk] ? risk : 'low';
-  figureWindow.innerHTML = FIGURE_SVGS[key] +
-    `<span class="figure-label">${FIGURE_LABELS[key]}</span>`;
+  // The hero artwork is now a stable L'SA character scene; keep only the
+  // risk label dynamic so the premium character is never replaced by the
+  // older placeholder silhouette.
+  figureWindow.innerHTML = `<span class="figure-label">${FIGURE_LABELS[key]}</span>`;
 }
 
 function renderScene(risk){
@@ -993,9 +998,12 @@ async function loadReading(location, tier, eventTrigger){
     // moved instead of silently doing nothing, which read as "static/
     // fake data" during real-device testing even though the
     // underlying checkTemperature() call was genuinely live.
-    const msg = res.reason === 'no_qualifying_trigger'
-      ? "no fresh check needed right now — showing last known reading"
-      : "couldn't get a reading — try again in a moment";
+    let msg = "couldn't get a reading — try again in a moment";
+    if (res.reason === 'no_qualifying_trigger') {
+      msg = "no fresh check needed right now — showing last known reading";
+    } else if (res.reason === 'fetch_failed') {
+      msg = `API error: ${res.error || 'connection failed'}`;
+    }
     document.getElementById('decisionMsg').textContent = msg;
     if(!currentReading){
       // No previous reading AT ALL (first-ever load hit this branch)
@@ -1131,12 +1139,12 @@ document.getElementById('apiKeySave').addEventListener('click', async ()=>{
       status.textContent = result.cached ? 'connected (cached)' : 'connected (live)';
       status.style.color = '#7CF29A';
     } else {
-      status.textContent = 'connected (no data yet)';
-      status.style.color = 'var(--ink-soft)';
+      status.textContent = result?.error ? `failed: ${result.error}` : 'connected (no data yet)';
+      status.style.color = result?.error ? '#FF4D4D' : 'var(--ink-soft)';
     }
   } catch (e) {
     console.error("[L'SA] API key check failed:", e);
-    status.textContent = 'connection failed';
+    status.textContent = `failed: ${e.message || 'connection error'}`;
     status.style.color = '#FF4D4D';
   }
   

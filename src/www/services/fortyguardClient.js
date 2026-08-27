@@ -30,6 +30,22 @@ export const MAX_FETCH_BYTES = 300_000; // matches Python's bounded-read cap (in
                                           // size is bounded by FortyGuard's own payload size in practice
                                           // for the small polygons this client requests)
 export const REQUEST_TIMEOUT_MS = 8000; // matches Python's REQUEST_TIMEOUT_SEC = 8
+export const MAX_API_REQUESTS_PER_READING = 5; // one submit + at most four status checks
+export const STATUS_POLL_DELAY_MS = 2000;
+
+const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
+
+function toFahrenheit(value, unit = 'c') {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) return null;
+  return unit === 'f' ? numeric : (numeric * 9 / 5) + 32;
+}
+
+function extractMeanCelsius(statsData) {
+  const stats = statsData || {};
+  const temperatureStats = stats.temperature_stats || stats.Temperature_stats || stats.temperatureStats || {};
+  return temperatureStats.mean ?? temperatureStats.Mean ?? stats.mean ?? stats.Mean ?? null;
+}
 
 // FortyGuard needs real coordinates, not place names — it has no
 // geocoding of its own. This is a small bridge table for demo cities;
@@ -130,16 +146,27 @@ export function riskLevelFor(tempF) {
  */
 export function temperatureFromHeatmap(raw, location) {
   const temps = [];
-  const features = (raw && raw.features) || [];
+  const mapData = raw?.map_data || raw;
+  const features = (mapData && mapData.features) || [];
   for (const feature of features) {
     const props = (feature && typeof feature === "object" && feature.properties) || {};
-    const val = props.temp_f ?? props.temperature ?? props.lst;
-    if (typeof val === "number" && !Number.isNaN(val)) temps.push(val);
+    if (props.temp_f != null || props.temperature_f != null) {
+      const value = Number(props.temp_f ?? props.temperature_f);
+      if (Number.isFinite(value)) temps.push(value);
+      continue;
+    }
+    const celsius = props.temperature ?? props.tcm ?? props.lst ?? props.value;
+    const value = toFahrenheit(celsius, 'c');
+    if (value != null) temps.push(value);
   }
 
+  const meanC = extractMeanCelsius(raw?.stats_data);
+  const meanF = raw?.avg_temp_f != null
+    ? Number(raw.avg_temp_f)
+    : toFahrenheit(meanC, 'c');
   const avgTemp = temps.length > 0
     ? Math.round((temps.reduce((a, b) => a + b, 0) / temps.length) * 10) / 10
-    : (raw && raw.avg_temp_f) || 0;
+    : (Number.isFinite(meanF) ? Math.round(meanF * 10) / 10 : 0);
 
   return {
     location,
@@ -156,9 +183,12 @@ export function temperatureFromHeatmap(raw, location) {
 }
 
 export class RealFortyGuardClient {
-  constructor(apiKey, baseUrl) {
+  constructor(apiKey, baseUrl, http = CapacitorHttp, options = {}) {
     this.apiKey = apiKey;
     this.baseUrl = baseUrl.replace(/\/$/, "");
+    this.http = http;
+    this.pollDelayMs = options.pollDelayMs ?? STATUS_POLL_DELAY_MS;
+    this.maxApiRequests = options.maxApiRequests ?? MAX_API_REQUESTS_PER_READING;
   }
 
   _headers() {
@@ -182,38 +212,77 @@ export class RealFortyGuardClient {
         start_time: `${pad(now.getHours())}:${pad(now.getMinutes())}`,
         filter_type: 1,
       },
+      analytic_type: 'tcm',
       granularity,
+    };
+
+    const requestOptions = {
+      headers: this._headers(),
+      connectTimeout: REQUEST_TIMEOUT_MS,
+      readTimeout: REQUEST_TIMEOUT_MS,
     };
 
     let response;
     try {
-      // CapacitorHttp — native platform HTTP request, bypasses
-      // WebView/browser CORS entirely. See module docstring above.
-      response = await CapacitorHttp.post({
+      response = await this.http.post({
         url: `${this.baseUrl}/heatmap`,
-        headers: this._headers(),
+        ...requestOptions,
         data: payload,
-        connectTimeout: REQUEST_TIMEOUT_MS,
-        readTimeout: REQUEST_TIMEOUT_MS,
       });
     } catch (e) {
-      throw new FortyGuardError(`FortyGuard request failed: ${e.message || e}`);
+      throw new FortyGuardError(`Network error: ${e.message || e}`);
     }
 
-    if (response.status < 200 || response.status >= 300) {
-      throw new FortyGuardError(`FortyGuard API error ${response.status}: ${JSON.stringify(response.data).slice(0, 200)}`);
+    const submission = this._parseResponse(response, 'submission');
+    const activityId = submission?.data?.activity_id || submission?.activity_id;
+    if (!activityId) {
+      // Keep compatibility with a legacy synchronous response if a server
+      // returns the final map directly instead of an activity task.
+      if (submission?.map_data || submission?.features || submission?.stats_data) return submission;
+      throw new FortyGuardError('API submission did not return an activity_id');
     }
 
-    // CapacitorHttp auto-parses JSON responses into response.data;
-    // guard anyway in case a plugin version returns a raw string.
-    if (typeof response.data === "string") {
+    // FortyGuard heatmap generation is asynchronous. A POST only submits the
+    // task; the final map and statistics arrive from the status endpoint.
+    for (let attempt = 0; attempt < this.maxApiRequests - 1; attempt += 1) {
+      await wait(this.pollDelayMs);
+      let statusResponse;
+      try {
+        statusResponse = await this.http.get({
+          url: `${this.baseUrl}/status/${encodeURIComponent(activityId)}`,
+          ...requestOptions,
+        });
+      } catch (e) {
+        throw new FortyGuardError(`Status network error: ${e.message || e}`);
+      }
+
+      const statusPayload = this._parseResponse(statusResponse, 'status');
+      const statusData = statusPayload?.data || statusPayload;
+      const status = String(statusData?.status || statusPayload?.message || '').toLowerCase();
+      if (status === 'completed' || status === 'succeeded' || status === 'complete') {
+        return statusData.result || statusData;
+      }
+      if (status === 'failed' || status === 'error') {
+        throw new FortyGuardError(`API activity ${activityId} failed`);
+      }
+    }
+
+    throw new FortyGuardError(`API activity ${activityId} is still processing after ${this.maxApiRequests} requests`);
+  }
+
+  _parseResponse(response, label) {
+    if (!response || response.status < 200 || response.status >= 300) {
+      const detail = typeof response?.data === 'string' ? response.data : JSON.stringify(response?.data || {});
+      throw new FortyGuardError(`API ${label} error ${response?.status || 'unknown'}: ${detail.slice(0, 140)}`);
+    }
+    if (typeof response.data === 'string') {
       try {
         return JSON.parse(response.data);
       } catch (e) {
-        throw new FortyGuardError(`FortyGuard returned unparseable response: ${e.message}`);
+        throw new FortyGuardError(`API ${label} returned invalid JSON`);
       }
     }
-    return response.data;
+    return response.data || {};
   }
 
   async getTemperature(location) {
@@ -225,6 +294,7 @@ export class RealFortyGuardClient {
     }
     const [lat, lng] = coords;
     const polygon = polygonAround(lat, lng);
+    // We call the heatmap endpoint with granularity 60 for temperature lookup
     const data = await this._callHeatmapApi(polygon, 60);
     return temperatureFromHeatmap(data, location);
   }
