@@ -25,7 +25,7 @@ export const VALID_EVENT_TRIGGERS = new Set([
  *   { data: null, cached: false, reason: "no_qualifying_trigger" }  // no unnecessary call
  */
 export async function smartTemperatureCheck(location, eventTrigger, tier, userId, client, deps) {
-  const { temperatureCache, tieredManager, tokenSystem, cacheTtlSeconds } = deps;
+  const { temperatureCache, tieredManager, tokenSystem, cacheTtlSeconds, skipMockCache = false } = deps;
 
   if (typeof location !== "string" || !location.trim()) {
     return { data: null, cached: false, reason: "invalid_location" };
@@ -35,8 +35,11 @@ export async function smartTemperatureCheck(location, eventTrigger, tier, userId
 
   const cacheKey = location.toLowerCase();
 
-  if (await temperatureCache.hasRecent(cacheKey, cacheTtlSeconds)) {
-    const cachedData = await temperatureCache.get(cacheKey);
+  const hasRecentCache = await temperatureCache.hasRecent(cacheKey, cacheTtlSeconds);
+  const cachedData = hasRecentCache ? await temperatureCache.get(cacheKey) : null;
+  const shouldUseCache = hasRecentCache && !(skipMockCache && cachedData?.source === 'mock');
+
+  if (shouldUseCache) {
     tieredManager.clearWait(location, tier);
     const record = tokenSystem.recordUsage(userId, tier, true);
     return {

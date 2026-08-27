@@ -1000,7 +1000,7 @@ async function loadReading(location, tier, eventTrigger){
       document.getElementById('condBadge').textContent = 'NO DATA';
       document.getElementById('condBadge').className = 'cond-badge';
     }
-    return;
+    return res;
   }
 
   currentReading = res.data;
@@ -1023,6 +1023,7 @@ async function loadReading(location, tier, eventTrigger){
   document.getElementById('callTokens').textContent = `${res.tokens_charged} tokens · ${res.data.source}`;
 
   refreshTokenPanel();
+  return res;
 }
 
 /* =========================================================
@@ -1098,10 +1099,19 @@ advToggle.addEventListener('click', ()=>{
 document.getElementById('apiKeySave').addEventListener('click', async ()=>{
   const input = document.getElementById('apiKeyInput');
   const status = document.getElementById('apiKeyStatus');
-  await setApiKey(input.value.trim());
+  const key = input.value.trim();
+  await setApiKey(key);
   input.value = ''; // never leave the key sitting visible in the field after save
-  status.textContent = 'saved';
-  setTimeout(()=>{ status.textContent = ''; }, 2000);
+  if (!key) {
+    status.textContent = 'saved';
+    setTimeout(()=>{ status.textContent = ''; }, 2000);
+    return;
+  }
+  status.textContent = 'checking…';
+  const location = currentReading?.location || (await getLastKnownLocation()) || 'phoenix';
+  const result = await loadReading(location, selectedTier, 'manual_refresh');
+  status.textContent = result?.data ? (result.cached ? 'cached' : 'live') : 'request failed';
+  setTimeout(()=>{ status.textContent = ''; }, 3000);
 });
 
 const mockToggle = document.getElementById('toggleMockMode');
@@ -1118,8 +1128,18 @@ mockToggle.addEventListener('click', async function(){
    BOOT
    ========================================================= */
 addBubble("Hi — ask me if it's safe out there, or how hot it is.", 'lsa');
-initNotifications();
-resolveLocation();
+(async () => {
+  try {
+    await initNotifications();
+  } catch (e) {
+    console.warn("[L'SA] notification startup failed:", e.message || e);
+  }
+  try {
+    await resolveLocation();
+  } catch (e) {
+    console.warn("[L'SA] location startup failed:", e.message || e);
+  }
+})();
 
 // Status bar overlay — dynamic import + defensive try/catch so this
 // never breaks app boot if @capacitor/status-bar isn't installed yet

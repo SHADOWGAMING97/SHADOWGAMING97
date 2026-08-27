@@ -1,0 +1,26 @@
+# LSA Repair TODO
+
+- [x] Fix UI runtime failure caused by unresolved bare package imports in the native WebView.
+- [x] Preserve the existing UI while adding a reproducible Vite bundle for Capacitor.
+- [x] Rebuild and verify the APK after the UI runtime fix.
+- [x] Confirm the final APK checksum and document any behavior that still requires physical Redmi 9 testing.
+
+- [x] Add Android location, notification, and foreground-service manifest declarations.
+- [x] Make saving a non-empty API key switch off mock mode.
+- [x] Pin text-to-speech plugin to Capacitor-compatible version 5.1.0.
+- [x] Add a default notification icon resource reference.
+- [x] Synchronize Android web assets and pass the existing verify-build checks.
+- [x] Produce a debug APK from the uploaded source.
+
+## Reported bug
+
+The user reports that the installed APK UI is not working. The source currently loads `src/www/index.html` directly and its inline module imports package specifiers such as `@capacitor/core`, `@capacitor/geolocation`, `@capacitor/preferences`, `@capawesome-team/capacitor-android-foreground-service`, and `@capacitor-community/text-to-speech`. A plain WebView cannot resolve those npm package specifiers without a bundling step, so the module can fail before event listeners and boot logic are registered.
+
+## Required minimal solution
+
+Add a Vite build that bundles the unchanged UI/service source, point Capacitor `webDir` at the generated `dist` directory, run the web build before `cap sync android`, then rebuild the APK. Do not redesign the UI or add features.
+
+- [x] Fix ongoing notification so it is actually posted to the Android notification bar on app startup/after the first reading.
+- [x] Fix real API request path so a saved API key reaches the native HTTP call and mock data is not silently used.
+- [x] Add static checks for notification startup and real-mode request wiring.
+- [x] Rebuild and deliver a fresh APK without changing the existing UI.

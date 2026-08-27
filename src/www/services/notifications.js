@@ -34,16 +34,15 @@ import { ForegroundService } from '@capawesome-team/capacitor-android-foreground
 const FOREGROUND_NOTIFICATION_ID = 4001;
 const FOREGROUND_CHANNEL_ID = 'lsa_status_channel';
 
-// dataSync is the correct type for "this service periodically fetches
-// and displays data" (temperature checks), as opposed to location,
-// mediaPlayback, camera, etc. — Android 34 requires declaring this
-// explicitly, both here at call time AND in the manifest (see
-// ANDROID_PERMISSIONS.md); one without the other is not sufficient on
-// recent Android versions.
-const SERVICE_TYPE = 'dataSync';
+// Android's ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC constant is 1.
+// The installed Capacitor plugin expects an integer here, not the string
+// "dataSync". The manifest declares the matching dataSync type.
+const SERVICE_TYPE = 1;
 
 let serviceStarted = false;
+let serviceStartPromise = null;
 let permissionRequested = false;
+let channelReady = false;
 
 export async function ensureNotificationPermission() {
   if (permissionRequested) return;
@@ -63,6 +62,22 @@ export async function ensureNotificationPermission() {
     // entirely (pre-Android 13) — never let a permission-check
     // failure block the rest of the app from working.
     console.warn("[L'SA] notification permission check failed:", e.message || e);
+  }
+  await ensureNotificationChannel();
+}
+
+async function ensureNotificationChannel() {
+  if (channelReady) return;
+  try {
+    await ForegroundService.createNotificationChannel({
+      id: FOREGROUND_CHANNEL_ID,
+      name: "L'SA status",
+      description: 'Ongoing heat monitoring status',
+      importance: 2,
+    });
+    channelReady = true;
+  } catch (e) {
+    console.warn("[L'SA] notification channel setup failed:", e.message || e);
   }
 }
 
@@ -98,24 +113,11 @@ function buildContent(checkResult, tierUsed) {
  */
 export async function updateStatusNotification(checkResult, tierUsed) {
   if (!checkResult || !checkResult.data) return;
+  await ensureNotificationPermission();
   const { title, body } = buildContent(checkResult, tierUsed);
 
   if (!serviceStarted) {
-    await ForegroundService.startForegroundService({
-      id: FOREGROUND_NOTIFICATION_ID,
-      title,
-      body,
-      smallIcon: 'ic_launcher_foreground', // using default icon to ensure startup success
-      notificationChannelId: FOREGROUND_CHANNEL_ID,
-      serviceType: SERVICE_TYPE, // required at call time on Android 34+, must
-                                  // match the manifest declaration — see
-                                  // ANDROID_PERMISSIONS.md
-      silent: true, // this is a status display, not an alert — TTS (tts.js) already
-                     // covers the "genuinely important, make noise" case for high/extreme
-                     // risk; the ongoing notification itself should stay quiet on updates
-                     // so it doesn't ping on every routine cached check.
-    });
-    serviceStarted = true;
+    await startForegroundNotification(title, body);
     return;
   }
 
@@ -125,6 +127,37 @@ export async function updateStatusNotification(checkResult, tierUsed) {
     title,
     body,
   });
+}
+
+async function startForegroundNotification(title, body) {
+  if (serviceStarted) return;
+  if (serviceStartPromise) return serviceStartPromise;
+  serviceStartPromise = (async () => {
+    await ensureNotificationPermission();
+    await ensureNotificationChannel();
+    await ForegroundService.startForegroundService({
+      id: FOREGROUND_NOTIFICATION_ID,
+      title,
+      body,
+      smallIcon: 'ic_stat_lsa',
+      notificationChannelId: FOREGROUND_CHANNEL_ID,
+      serviceType: SERVICE_TYPE,
+      silent: true,
+    });
+    serviceStarted = true;
+  })();
+  try {
+    await serviceStartPromise;
+  } finally {
+    serviceStartPromise = null;
+  }
+}
+
+export async function startIdleNotification() {
+  await startForegroundNotification(
+    "L'SA — monitoring active",
+    'Waiting for the current heat reading…',
+  );
 }
 
 /**

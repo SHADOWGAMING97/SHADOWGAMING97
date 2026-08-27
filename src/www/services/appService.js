@@ -16,7 +16,7 @@ import { TokenSystem } from './tokenSystem.js';
 import { LocationManager } from './locationManager.js';
 import { smartTemperatureCheck } from './smartTemperature.js';
 import { resolveLocation as _resolveLocation } from './geolocation.js';
-import { updateStatusNotification, ensureNotificationPermission } from './notifications.js';
+import { updateStatusNotification, ensureNotificationPermission, startIdleNotification } from './notifications.js';
 import { speakIfCritical } from './tts.js';
 
 // Module-level singletons, mirroring the Python backend's singleton
@@ -47,6 +47,7 @@ export async function checkTemperature(location, eventTrigger, tier) {
     tieredManager,
     tokenSystem,
     cacheTtlSeconds: config.cacheTtlTemperature,
+    skipMockCache: !config.useMockData,
   });
 
   // Native notification — the capability a browser page never had.
@@ -90,6 +91,11 @@ export async function getLastKnownLocation() {
 
 export async function initNotifications() {
   await ensureNotificationPermission();
+  try {
+    await startIdleNotification();
+  } catch (e) {
+    console.warn("[L'SA] startup foreground notification failed:", e.message || e);
+  }
 }
 
 // ---- Settings-screen config functions (Profile tab API key field) ----

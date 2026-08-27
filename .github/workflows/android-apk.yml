@@ -36,6 +36,9 @@ jobs:
       - name: Generate Android project
         run: npx cap add android
 
+      - name: Apply native notification configuration
+        run: node scripts/prepare-android.mjs
+
       - name: Sync Capacitor assets and plugins
         run: npx cap sync android
 
