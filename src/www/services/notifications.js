@@ -94,22 +94,22 @@ function buildContent(checkResult, tierUsed) {
   // Failure case: No fresh or cached data was returned.
   if (!data) {
     let failMsg = error || 'connection failed';
-    if (reason === 'no_qualifying_trigger') failMsg = 'waiting for next scheduled check';
+    if (reason === 'no_qualifying_trigger') failMsg = 'waiting for next check';
     return {
-      title: "L'SA — reading failed",
-      body: `Last attempt: ${failMsg} · ${new Date().toLocaleTimeString()}`,
+      title: "L'SA — Heat monitoring",
+      body: `⚠️ Reading failed: ${failMsg} · ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`,
     };
   }
 
   // Success case: We have a valid reading (either live or from cache).
-  const tierLabel = cached ? 'cached' : (cost?.tier || tierUsed);
-  const body = cached
-    ? `${data.temp_f}°F · cached · ${tokens_charged} tokens · ${fmtAgo(data.fetched_at)}`
-    : `${data.temp_f}°F · ${tierLabel} tier · ${tokens_charged} tokens · ${fmtAgo(data.fetched_at)}`;
-  return {
-    title: `L'SA — ${data.risk_level.toUpperCase()} risk in ${data.location}`,
-    body,
-  };
+  const risk = data.risk_level.toUpperCase();
+  const loc = data.location.includes(',') ? 'Current Location' : data.location;
+  const time = new Date(data.fetched_at * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  
+  const title = `L'SA: ${data.temp_f}°F — ${risk} RISK`;
+  const body = `${loc} · ${cached ? 'Cached' : 'Live'} · ${time}`;
+  
+  return { title, body };
 }
 
 /**

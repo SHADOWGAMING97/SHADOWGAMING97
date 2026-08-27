@@ -27,20 +27,18 @@ async function buildContent(checkResult, tierUsed) {
   const { data, cached, cost, tokens_charged, reason, error } = checkResult;
   if (!data) {
     let failMsg = error || 'connection failed';
-    if (reason === 'no_qualifying_trigger') failMsg = 'waiting for next scheduled check';
+    if (reason === 'no_qualifying_trigger') failMsg = 'waiting for next check';
     return {
-      title: "L'SA — reading failed",
-      body: `Last attempt: ${failMsg} · ${new Date().toLocaleTimeString()}`,
+      title: "L'SA — Heat monitoring",
+      body: `⚠️ Reading failed: ${failMsg} · ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`,
     };
   }
-  const tierLabel = cached ? 'cached' : (cost?.tier || tierUsed);
-  const body = cached
-    ? `${data.temp_f}°F · cached · ${tokens_charged} tokens · ${new Date(data.fetched_at * 1000).toLocaleTimeString()}`
-    : `${data.temp_f}°F · ${tierLabel} tier · ${tokens_charged} tokens · ${new Date(data.fetched_at * 1000).toLocaleTimeString()}`;
-  return {
-    title: `L'SA — ${data.risk_level.toUpperCase()} risk in ${data.location}`,
-    body,
-  };
+  const risk = data.risk_level.toUpperCase();
+  const loc = data.location.includes(',') ? 'Current Location' : data.location;
+  const time = new Date(data.fetched_at * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  const title = `L'SA: ${data.temp_f}°F — ${risk} RISK`;
+  const body = `${loc} · ${cached ? 'Cached' : 'Live'} · ${time}`;
+  return { title, body };
 }
 
 async function updateStatusNotification(checkResult, tierUsed) {
@@ -59,9 +57,9 @@ const liveResult = {
 };
 await updateStatusNotification(liveResult, tier);
 assert.equal(calls.length, 1);
-assert.ok(calls[0].options.title.includes('HIGH risk in Dubai'));
-assert.ok(calls[0].options.body.includes('98°F'));
-assert.ok(calls[0].options.body.includes('standard tier'));
+assert.ok(calls[0].options.title.includes('98°F — HIGH RISK'));
+assert.ok(calls[0].options.body.includes('Dubai'));
+assert.ok(calls[0].options.body.includes('Live'));
 
 // Test 2: API Failure
 const failResult = {
@@ -73,8 +71,8 @@ const failResult = {
 await updateStatusNotification(failResult, tier);
 assert.equal(calls.length, 2);
 assert.equal(calls[1].type, 'update');
-assert.ok(calls[1].options.title.includes('reading failed'));
-assert.ok(calls[1].options.body.includes('Invalid Key'));
+assert.ok(calls[1].options.title.includes('Heat monitoring'));
+assert.ok(calls[1].options.body.includes('Reading failed: API Error 401: Invalid Key'));
 
 // Test 3: Cached reading
 const cachedResult = {
@@ -84,9 +82,9 @@ const cachedResult = {
 };
 await updateStatusNotification(cachedResult, tier);
 assert.equal(calls.length, 3);
-assert.ok(calls[2].options.title.includes('LOW risk in Phoenix'));
-assert.ok(calls[2].options.body.includes('72°F'));
-assert.ok(calls[2].options.body.includes('cached'));
-assert.ok(calls[2].options.body.includes(new Date(cachedResult.data.fetched_at * 1000).toLocaleTimeString()));
+assert.ok(calls[2].options.title.includes('72°F — LOW RISK'));
+assert.ok(calls[2].options.body.includes('Phoenix'));
+assert.ok(calls[2].options.body.includes('Cached'));
+assert.ok(calls[2].options.body.includes(new Date(cachedResult.data.fetched_at * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })));
 
 console.log('PASS: Notification updates correctly for live, cached, and failed API calls.');

@@ -37,3 +37,5 @@ Add a Vite build that bundles the unchanged UI/service source, point Capacitor `
 - [x] Fix null DOM crash in `loadReading` when updating elements that were removed in the dark UI refresh.
 - [x] Update persistent Android notification with recent API call details (location, status, temp, risk).
 - [x] Verify that saving an API key correctly triggers the real call and notification update.
+- [x] Improve the persistent Android notification content to be more polished and readable.
+- [x] Ensure the notification clearly summarizes heat status (temp, risk, location) and recent API call status.
