@@ -53,6 +53,78 @@ against mock data in one combined test run (10/10 checks passed):
    The 4-state risk mapping, umbrella+water/house-entering details, and
    `.drop`/`.doorglow` animation hooks are unchanged, as instructed.
 
+## Latest pass: response to Manus's technical handoff report
+
+Manus (a separate AI) audited the previous build and produced a
+handoff report with 3 claimed issues. Verified each against the
+actual code before touching anything — 2 were real, 1 was based on a
+misunderstanding of this project's architecture, and investigating it
+surfaced a more serious bug Manus's report never caught at all.
+
+1. **"setApiKey doesn't auto-disable mock mode" — REAL BUG, fixed.**
+   Confirmed: saving a key wrote it to storage but never touched the
+   mock-mode flag, which defaults to `true` and stayed `true` until a
+   separate manual toggle flip. `setApiKey()` now automatically calls
+   `setMockMode(false)` whenever a non-empty key is saved — verified
+   the before/after state flips correctly, and that clearing the key
+   still correctly falls back to mock mode (via the existing
+   `!apiKey` check in `loadConfig()`, not by force).
+
+2. **"Foreground service manifest declaration is missing" — partially
+   correct, clarified.** The exact `<service>` XML block (including
+   `stopWithTask="false"` and `foregroundServiceType="dataSync"`) was
+   already documented in `ANDROID_PERMISSIONS.md` from a previous
+   round. The real gap Manus's report points at is legitimate though:
+   documentation isn't a manifest — nothing in this sandbox can run
+   `cap add android` to generate a real `AndroidManifest.xml` and
+   actually insert that XML into it, so it's never been physically
+   present in a real, buildable manifest. That insertion step remains
+   something to do by hand after `cap add android`, per
+   `ANDROID_PERMISSIONS.md`.
+
+3. **"Add a build:web step so the APK reflects the latest source" —
+   based on a wrong premise, and investigating it found the REAL bug.**
+   This project deliberately has no bundler — `src/www/index.html` is
+   one self-contained file with plain relative imports; running it
+   through Vite is exactly what silently broke a previous build (see
+   the "URGENT" section below). Adding a `build:web` step would have
+   reintroduced that exact risk rather than fixing anything.
+
+   But checking this claim carefully surfaced a real, more fundamental
+   bug that Manus's report never identified: **`src/services/` was
+   living OUTSIDE `webDir`** (`capacitor.config.ts` sets
+   `webDir: 'src/www'`, but services lived in a sibling `src/services/`
+   folder). Capacitor's sync step only copies what's physically inside
+   `webDir` — it has no mechanism to also pull in a sibling directory.
+   This means `index.html`'s `../services/*.js` imports would resolve
+   to a location `cap sync` never populates, regardless of any bundler
+   question at all. This is very likely the actual root cause of
+   "API integration is mock only" and every other "the real logic
+   doesn't seem to run" symptom across every previous round — not
+   because the logic was wrong, but because it could never have been
+   reachable at runtime in the first place.
+
+   **Fixed**: moved `src/services/` to `src/www/services/` (physically
+   inside webDir now) and updated `index.html`'s imports from
+   `../services/*.js` to `./services/*.js` to match. Verified the full
+   functional regression suite still passes from the new location (7/7
+   checks: all 4 risk levels correctly wired, decay math, templates,
+   and the `setApiKey` fix above — all confirmed working from
+   `src/www/services/`).
+
+   Also rewrote `verify-build.js` to catch this exact class of bug
+   automatically going forward — it now runs 3 checks in sequence:
+   (1) every relative import inside `src/www/` actually resolves to a
+   file inside `src/www/` — this is the new check, and it's what would
+   have caught this bug immediately; (2) required app-logic markers
+   are present in the synced assets (the original missing-logic
+   check); (3) synced assets are byte-identical to source, catching
+   staleness from a forgotten `cap sync`. Tested all three stages
+   independently: a reconstruction of the old (broken) out-of-webDir
+   structure is correctly rejected at stage 1 before even reaching the
+   Android assets folder; a stale sync is correctly caught at stage 3;
+   a correct, fresh, in-webDir build passes all three.
+
 ## Latest pass: null-safety fix + location-permission behavior change
 
 Two changes this round, on top of the 5 critical fixes above:
@@ -176,36 +248,48 @@ hand-writing Gradle boilerplate I have no way to verify. See
 Then:
 ```bash
 npx cap sync android
+node verify-build.js   # confirm the sync actually picked up real, fresh app logic
 npx cap open android    # opens Android Studio — build/run from there
 # or, from the command line:
-npm run build:android   # produces android/app/build/outputs/apk/debug/app-debug.apk
+npm run build:android   # runs sync + verify-build.js + gradlew automatically
+                          # produces android/app/build/outputs/apk/debug/app-debug.apk
 ```
+
+If you use Android Studio's own build/run button instead of
+`npm run build:android`, run `node verify-build.js` manually right
+after `cap sync` first — Android Studio has no awareness of this
+project's verification script.
 
 ## Project structure
 
 ```
 src/
-  services/           — ported backend logic (see "What was ported" below)
-    tieredRequest.js     ← app/services/tiered_request.py
-    tokenSystem.js       ← app/services/token_system.py
-    fortyguardClient.js  ← app/services/fortyguard_client.py
-    cache.js             ← app/services/cache.py
-    locationManager.js   ← app/services/location_manager.py
-    smartTemperature.js  ← app/services/smart_temperature.py (orchestrator)
-    storage.js            (new — Capacitor Preferences adapter)
-    config.js              (new — on-device settings, replaces .env)
-    geolocation.js         (new — Capacitor Geolocation wrapper)
-    templates.js            (extracted — the Template Whitelist, single
-                             source of truth shared by the UI and TTS)
-    notifications.js        (rewritten — foreground-service ongoing
-                             notification, replaces the old one-shot
-                             LocalNotifications version)
-    tts.js                  (new — high/extreme-only text-to-speech)
-    appService.js           (new — wires everything together for the UI)
-  www/
-    index.html          — the wrapped frontend (Capacitor's webDir)
+  www/                — Capacitor's webDir (capacitor.config.ts) — this
+                        ENTIRE folder is what gets copied to the device
+                        on `cap sync`. Nothing outside it is reachable
+                        at runtime — this is exactly why services/ now
+                        lives inside here, not as a sibling folder.
+    index.html          — the wrapped frontend
+    services/           — ported backend logic (see "What was ported" below)
+      tieredRequest.js     ← app/services/tiered_request.py
+      tokenSystem.js       ← app/services/token_system.py
+      fortyguardClient.js  ← app/services/fortyguard_client.py
+      cache.js             ← app/services/cache.py
+      locationManager.js   ← app/services/location_manager.py
+      smartTemperature.js  ← app/services/smart_temperature.py (orchestrator)
+      storage.js            (new — Capacitor Preferences adapter)
+      config.js              (new — on-device settings, replaces .env)
+      geolocation.js         (new — Capacitor Geolocation wrapper)
+      templates.js            (extracted — the Template Whitelist, single
+                               source of truth shared by the UI and TTS)
+      notifications.js        (rewritten — foreground-service ongoing
+                               notification, replaces the old one-shot
+                               LocalNotifications version)
+      tts.js                  (new — high/extreme-only text-to-speech)
+      appService.js           (new — wires everything together for the UI)
 capacitor.config.ts
 package.json
+verify-build.js      — run after every `cap sync`, before building/installing
 ANDROID_PERMISSIONS.md
 ```
 

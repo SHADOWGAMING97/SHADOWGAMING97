@@ -756,8 +756,8 @@ import {
   checkTemperature, getTokenBalance, getTokenSavings,
   resolveLocation as resolveDeviceLocation, getLastKnownLocation,
   initNotifications, statusSummary, setApiKey, setMockMode,
-} from '../services/appService.js';
-import { TEMPLATES, decisionFor } from '../services/templates.js';
+} from './services/appService.js';
+import { TEMPLATES, decisionFor } from './services/templates.js';
 
 /* =========================================================
    TAB SWITCHING
@@ -1118,16 +1118,8 @@ mockToggle.addEventListener('click', async function(){
    BOOT
    ========================================================= */
 addBubble("Hi — ask me if it's safe out there, or how hot it is.", 'lsa');
-
-// Startup repairs: request permissions immediately on boot
-(async () => {
-  try {
-    await initNotifications();
-    await resolveLocation();
-  } catch (e) {
-    console.warn("[L'SA] startup permission check failed:", e.message || e);
-  }
-})();
+initNotifications();
+resolveLocation();
 
 // Status bar overlay — dynamic import + defensive try/catch so this
 // never breaks app boot if @capacitor/status-bar isn't installed yet

@@ -105,7 +105,7 @@ export async function updateStatusNotification(checkResult, tierUsed) {
       id: FOREGROUND_NOTIFICATION_ID,
       title,
       body,
-      smallIcon: 'ic_stat_lsa', // must exist in android/app/src/main/res/drawable — see README
+      smallIcon: 'ic_launcher_foreground', // using default icon to ensure startup success
       notificationChannelId: FOREGROUND_CHANNEL_ID,
       serviceType: SERVICE_TYPE, // required at call time on Android 34+, must
                                   // match the manifest declaration — see

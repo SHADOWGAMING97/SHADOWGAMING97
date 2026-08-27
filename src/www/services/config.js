@@ -66,7 +66,21 @@ export async function loadConfig() {
 }
 
 export async function setApiKey(apiKey) {
-  await storageAdapter.set(KEYS.apiKey, apiKey || '');
+  const trimmed = (apiKey || '').trim();
+  await storageAdapter.set(KEYS.apiKey, trimmed);
+  // The moment a real key is saved, pivot to real-mode automatically.
+  // Previously this required a SEPARATE manual mock-mode toggle flip —
+  // saving a key alone did nothing observable, which read as "the app
+  // is fake/unresponsive" even after correctly entering credentials.
+  // Only auto-disable mock mode for a non-empty key; clearing the key
+  // (saving an empty string) should not silently force mock mode back
+  // on either way — leave forceMockMode as whatever it already was in
+  // that case, since loadConfig()'s useMockData already falls back to
+  // mock automatically once fortyguardApiKey is empty regardless of
+  // the forceMockMode flag's value.
+  if (trimmed) {
+    await setMockMode(false);
+  }
 }
 
 export async function setMockMode(enabled) {

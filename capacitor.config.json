@@ -1,13 +1,15 @@
 {
   "appId": "com.lucky.lsa.heatintel",
   "appName": "L'SA",
-  "webDir": "dist",
-  "android": {
-    "allowMixedContent": false
-  },
+  "webDir": "src/www",
   "plugins": {
     "CapacitorHttp": {
       "enabled": true
+    },
+    "StatusBar": {
+      "overlaysWebView": true,
+      "style": "DARK",
+      "backgroundColor": "#00000000"
     }
   }
 }
