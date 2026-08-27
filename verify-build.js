@@ -28,14 +28,16 @@ const distFiles = collectFiles(DIST);
 const textFiles = distFiles.filter((file) => /\.(html|js|css)$/.test(file));
 const distText = textFiles.map((file) => readFileSync(file, 'utf8')).join('\n');
 
-for (const marker of ['FortyGuard', "L'SA", 'Heat Intelligence', 'monitoring active', 'ic_stat_lsa', 'heatmap', 'api-key', 'activity_id', '/status/', 'analytic_type']) {
+for (const marker of ['FortyGuard', "L'SA", 'Heat Intelligence', 'monitoring active', 'ic_stat_lsa', 'heatmap', 'api-key', 'activity_id', '/status/', 'analytic_type', 'lsa_scene_low.png', 'lsa_scene_moderate.png', 'lsa_scene_high.png', 'lsa_scene_extreme.png']) {
   if (!distText.includes(marker)) {
     fail(`generated bundle is missing stable app marker: ${marker}`);
   }
 }
 
-if (!distFiles.some((file) => /assets\/lsa_character_scene-[^/]+\.png$/.test(file))) {
-  fail('bundled LSA character asset is missing from dist/assets.');
+for (const state of ['low', 'moderate', 'high', 'extreme']) {
+  if (!distFiles.some((file) => new RegExp(`assets/lsa_scene_${state}-.*\\.png$`).test(file))) {
+    fail(`bundled LSA ${state} scene asset is missing from dist/assets.`);
+  }
 }
 
 for (const file of textFiles) {

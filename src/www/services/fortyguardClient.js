@@ -30,8 +30,8 @@ export const MAX_FETCH_BYTES = 300_000; // matches Python's bounded-read cap (in
                                           // size is bounded by FortyGuard's own payload size in practice
                                           // for the small polygons this client requests)
 export const REQUEST_TIMEOUT_MS = 8000; // matches Python's REQUEST_TIMEOUT_SEC = 8
-export const MAX_API_REQUESTS_PER_READING = 5; // one submit + at most four status checks
-export const STATUS_POLL_DELAY_MS = 2000;
+export const MAX_API_REQUESTS_PER_READING = 30; // one submit + up to 29 status checks
+export const STATUS_POLL_DELAY_MS = 3000;
 
 const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -255,6 +255,11 @@ export class RealFortyGuardClient {
       } catch (e) {
         throw new FortyGuardError(`Status network error: ${e.message || e}`);
       }
+
+      // Per official docs: 404 means "Activity not found or temporarily
+      // unavailable immediately after submission." This is a normal
+      // non-terminal state during the first few seconds.
+      if (statusResponse.status === 404) continue;
 
       const statusPayload = this._parseResponse(statusResponse, 'status');
       const statusData = statusPayload?.data || statusPayload;

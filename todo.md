@@ -31,3 +31,6 @@ Add a Vite build that bundles the unchanged UI/service source, point Capacitor `
 - [x] Fix "API connection fail" by improving FortyGuard request reliability and error visibility.
 - [x] Replace the current silhouette hero with a more appealing LSA character/mascot.
 - [x] Rebuild and verify the final competition-ready APK.
+- [x] Fix real FortyGuard API connection failure (verify async result extraction).
+- [x] Replace close-up mascot with four distant character reaction scenes (calm, sweating, umbrella, house).
+- [x] Ensure character scenes correctly swap based on `risk_level` from real API data.

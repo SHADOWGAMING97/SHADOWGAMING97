@@ -280,12 +280,12 @@
     width:100%; height:200px;
     margin: 0 0 20px;
     border-radius: var(--radius-md);
-    background-image: url('/manus-storage/lsa_character_scene_0afe7b20.png'), url('./assets/lsa_character_scene.png');
     background-position: center;
     background-size: cover;
     background-repeat: no-repeat;
     display:flex; align-items:center; justify-content:center;
     overflow:hidden;
+    transition: background-image 0.5s ease-in-out;
   }
   .figure-window svg{ display:none; }
   .figure-window .figure-label{
@@ -734,6 +734,14 @@
 
     </div>
 
+    <!-- Hidden assets to ensure Vite bundles them for offline APK use -->
+    <div style="display:none" aria-hidden="true">
+      <img src="./assets/lsa_scene_low.png" alt="" />
+      <img src="./assets/lsa_scene_moderate.png" alt="" />
+      <img src="./assets/lsa_scene_high.png" alt="" />
+      <img src="./assets/lsa_scene_extreme.png" alt="" />
+    </div>
+
     <nav class="tabbar">
       <button class="tabbtn is-active" data-tab="home">
         <svg viewBox="0 0 24 24" fill="none"><path d="M4 11L12 4l8 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M6 10v9h12v-9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -879,12 +887,17 @@ const FIGURE_SVGS = {
     </svg>`,
 };
 const FIGURE_LABELS = { low:'calm', moderate:'sweating', high:'seeking shade', extreme:'heading inside' };
+const FIGURE_SCENES = {
+  low:      { url: '/manus-storage/lsa_scene_low_bdcb49ca.png', local: './assets/lsa_scene_low.png' },
+  moderate: { url: '/manus-storage/lsa_scene_moderate_13899d72.png', local: './assets/lsa_scene_moderate.png' },
+  high:     { url: '/manus-storage/lsa_scene_high_77f453c9.png', local: './assets/lsa_scene_high.png' },
+  extreme:  { url: '/manus-storage/lsa_scene_extreme_9b71304d.png', local: './assets/lsa_scene_extreme.png' }
+};
 
 function renderFigure(risk){
-  const key = FIGURE_SVGS[risk] ? risk : 'low';
-  // The hero artwork is now a stable L'SA character scene; keep only the
-  // risk label dynamic so the premium character is never replaced by the
-  // older placeholder silhouette.
+  const key = FIGURE_SCENES[risk] ? risk : 'low';
+  const s = FIGURE_SCENES[key];
+  figureWindow.style.backgroundImage = `url('${s.url}'), url('${s.local}')`;
   figureWindow.innerHTML = `<span class="figure-label">${FIGURE_LABELS[key]}</span>`;
 }
 
