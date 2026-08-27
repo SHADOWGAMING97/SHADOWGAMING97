@@ -24,3 +24,7 @@ Add a Vite build that bundles the unchanged UI/service source, point Capacitor `
 - [x] Fix real API request path so a saved API key reaches the native HTTP call and mock data is not silently used.
 - [x] Add static checks for notification startup and real-mode request wiring.
 - [x] Rebuild and deliver a fresh APK without changing the existing UI.
+- [x] Refresh the UI to match the supplied dark mobile reference (sunset hero, bold temp, chat card).
+- [x] Generate a reference-matched character/hero scene asset.
+- [x] Deliver the refreshed source and APK while preserving all fixed notification/API logic.
+- [x] Make the GitHub Android workflow reapply the native foreground-service manifest and notification icon after `npx cap add android`.

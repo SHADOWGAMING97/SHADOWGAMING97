@@ -26,29 +26,29 @@
 <style>
   :root{
     /* ---- L'SA identity: white + violet (the app's own chrome) ---- */
-    --paper:      #FAF8FF;
-    --paper-dim:  #F1ECFB;
-    --surface:    #FFFFFF;
-    --ink:        #1C1330;
-    --ink-soft:   #5B5270;
-    --violet-900: #241046;
-    --violet-700: #3F1E85;
-    --violet-600: #6D28D9;
-    --violet-500: #7C3AED;
+    --paper:      #0A0A0A;
+    --paper-dim:  #141414;
+    --surface:    #1A1429;
+    --ink:        #FFFFFF;
+    --ink-soft:   #A19EB0;
+    --violet-900: #0A0A0A;
+    --violet-700: #7C3AED;
+    --violet-600: #8B5CF6;
+    --violet-500: #A78BFA;
     --violet-300: #C4B0F5;
     --violet-200: #E4D9FB;
-    --violet-100: #F1EAFC;
-    --line:       #E4DCF6;
+    --violet-100: #1F1B2E;
+    --line:       #2D2A3D;
 
-    /* ---- heat accents: the world outside gets warmer, the app chrome stays violet ---- */
+    /* ---- heat accents ---- */
     --heat-500:   #F2600C;
     --heat-300:   #FDBA74;
     --sun-glow:   #FFB65C;
 
-    --radius-lg: 28px;
-    --radius-md: 18px;
-    --radius-sm: 12px;
-    --shadow-card: 0 18px 40px -20px rgba(36,16,70,.35);
+    --radius-lg: 32px;
+    --radius-md: 24px;
+    --radius-sm: 16px;
+    --shadow-card: 0 20px 50px rgba(0,0,0,0.5);
     --ease: cubic-bezier(.22,.9,.32,1);
   }
 
@@ -56,14 +56,14 @@
   html,body{ height:100%; }
   body{
     margin:0;
-    background: radial-gradient(1200px 800px at 20% -10%, #2B1554 0%, #0E0620 55%, #08040F 100%);
+    background: #000;
     font-family:'Manrope',system-ui,sans-serif;
     color:var(--ink);
     display:flex;
     align-items:center;
     justify-content:center;
     min-height:100vh;
-    padding:28px 16px;
+    padding:0;
   }
 
   h1,h2,h3,.display{ font-family:'Space Grotesk',system-ui,sans-serif; letter-spacing:-.01em; }
@@ -100,11 +100,12 @@
     background:var(--paper);
     border-radius: var(--radius-lg);
     overflow:hidden;
-    box-shadow: 0 40px 90px -30px rgba(0,0,0,.65), 0 0 0 1px rgba(255,255,255,.06);
+    box-shadow: none;
     height:800px;
     display:flex;
     flex-direction:column;
     position:relative;
+    width: 390px;
   }
 
   @media (max-width: 480px){
@@ -239,10 +240,10 @@
   .scene{
     position:relative;
     flex:none;
-    padding: 26px 22px 24px;
+    padding: 20px 20px 24px;
     overflow:hidden;
     color:#fff;
-    background: linear-gradient(180deg, var(--violet-900), #17092E 120%);
+    background: transparent;
     transition: background 1.1s var(--ease);
   }
   /* ambient glow/shimmer — driven by risk_level only, since that's
@@ -276,12 +277,10 @@
      This is the thing that's meant to read instantly, without text. */
   .figure-window{
     position:relative; z-index:2;
-    width:104px; height:104px;
-    margin: 2px 0 16px;
-    border-radius: 20px;
-    background: rgba(255,255,255,.10);
-    border: 1px solid rgba(255,255,255,.16);
-    backdrop-filter: blur(4px);
+    width:100%; height:200px;
+    margin: 0 0 20px;
+    border-radius: var(--radius-md);
+    background: url('/manus-storage/lsa_hero_c0ed6c46.png') center/cover no-repeat;
     display:flex; align-items:center; justify-content:center;
     overflow:hidden;
   }
@@ -310,14 +309,14 @@
     font-size:10.5px; letter-spacing:.03em;
   }
   .scene .temp-row{ display:flex; align-items:flex-start; gap:14px; }
-  .scene .temp-num{ font-size:76px; line-height:.9; font-weight:700; letter-spacing:-.03em; }
-  .scene .temp-num sup{ font-size:32px; font-weight:600; top:-.5em; }
+  .scene .temp-num{ font-size:90px; line-height:1; font-weight:700; letter-spacing:-.02em; }
+  .scene .temp-num sup{ font-size:40px; font-weight:600; top:-0.4em; }
+  .scene .readout{ display:flex; align-items:center; gap:16px; margin-bottom:12px; }
   .scene .cond-badge{
-    margin-top:8px;
     display:inline-flex; align-items:center; gap:6px;
-    font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.08em;
-    padding:6px 12px; border-radius:999px;
-    background:rgba(255,255,255,.14);
+    font-size:11px; font-weight:800; text-transform:uppercase; letter-spacing:.05em;
+    padding:8px 16px; border-radius:999px;
+    background:rgba(255,255,255,0.1);
   }
   .scene .cond-badge.risk-extreme{ background:#F2600C; color:#2A0900; }
   .scene .cond-badge.risk-high{ background:#FDBA74; color:#3A1600; }
@@ -325,28 +324,32 @@
   .scene .cond-badge.risk-low{ background:rgba(255,255,255,.85); color:var(--violet-900); }
 
   .decision{
-    position:relative; z-index:2; margin-top:20px;
-    background:rgba(255,255,255,.13);
-    backdrop-filter: blur(6px);
-    border:1px solid rgba(255,255,255,.18);
-    border-radius: var(--radius-md);
-    padding:14px 16px;
-    font-size:14.5px; font-weight:600; line-height:1.45;
+    position:relative; z-index:2; margin-top:4px;
+    background: transparent;
+    padding: 0;
+    font-size:16px; font-weight:500; line-height:1.4;
+    color: var(--ink-soft);
   }
 
   /* ---- chat ---- */
-  .chat-wrap{ flex:1; display:flex; flex-direction:column; min-height:0; background:var(--paper); }
+  .chat-wrap{
+    margin: 20px;
+    flex:1; display:flex; flex-direction:column; min-height:0;
+    background:var(--surface);
+    border-radius: var(--radius-md);
+    padding: 20px;
+  }
   .chat-head{
-    padding:16px 20px 8px; display:flex; align-items:center; gap:10px;
+    padding: 0 0 16px; display:flex; align-items:center; gap:12px;
   }
   .chat-head .avatar{
-    width:32px; height:32px; border-radius:10px; flex:none;
-    background:linear-gradient(140deg,var(--violet-500),var(--violet-900));
+    width:36px; height:36px; border-radius:12px; flex:none;
+    background:rgba(124, 58, 237, 0.2);
     display:flex; align-items:center; justify-content:center;
-    color:#fff; font-family:'Space Grotesk'; font-weight:700; font-size:14px;
+    color:var(--violet-500);
   }
-  .chat-head h2{ margin:0; font-size:15px; }
-  .chat-head p{ margin:1px 0 0; font-size:11.5px; color:var(--ink-soft); }
+  .chat-head h2{ margin:0; font-size:18px; font-weight:700; }
+  .chat-head p{ display:none; }
 
   .chat-log{ flex:1; overflow-y:auto; padding:10px 20px 6px; display:flex; flex-direction:column; gap:10px; }
   .bubble{
@@ -370,18 +373,18 @@
   .quick-row button:hover{ background:var(--violet-100); }
 
   .chat-input-row{
-    flex:none; display:flex; gap:8px; padding:10px 16px calc(12px + env(safe-area-inset-bottom));
-    border-top:1px solid var(--line); background:var(--surface);
+    flex:none; display:flex; gap:10px; padding: 12px 0 0;
+    background:transparent;
   }
   .chat-input-row input{
-    flex:1; border:1.5px solid var(--line); border-radius:999px;
-    padding:11px 16px; font-size:13.5px; font-family:inherit; background:var(--paper-dim);
+    flex:1; border:none; border-radius:999px;
+    padding:12px 20px; font-size:14px; font-family:inherit; background:rgba(255,255,255,0.05);
     color:var(--ink);
   }
-  .chat-input-row input:focus{ border-color:var(--violet-500); background:#fff; }
+  .chat-input-row input:focus{ background:rgba(255,255,255,0.1); outline:none; }
   .chat-input-row button.send{
-    width:42px; height:42px; border-radius:50%; border:none; flex:none;
-    background:var(--violet-600); color:#fff; cursor:pointer;
+    width:44px; height:44px; border-radius:50%; border:none; flex:none;
+    background:var(--violet-700); color:#fff; cursor:pointer;
     display:flex; align-items:center; justify-content:center;
   }
   .chat-input-row button.send:hover{ background:var(--violet-700); }
@@ -415,11 +418,11 @@
   .tier-group{ display:flex; flex-direction:column; gap:10px; margin-bottom:22px; }
   .tier-opt{
     display:flex; align-items:center; justify-content:space-between;
-    border:1.5px solid var(--line); border-radius: var(--radius-sm); padding:13px 15px;
-    cursor:pointer; background:var(--surface); transition:border-color .15s, background .15s;
+    border:none; border-radius: var(--radius-sm); padding:16px 20px;
+    cursor:pointer; background:var(--surface); transition:background .15s;
   }
-  .tier-opt:hover{ border-color:var(--violet-300); }
-  .tier-opt.is-selected{ border-color:var(--violet-600); background:var(--violet-100); }
+  .tier-opt:hover{ background:rgba(255,255,255,0.05); }
+  .tier-opt.is-selected{ background:var(--violet-100); color: var(--violet-500); }
   .tier-opt .t-name{ font-weight:700; font-size:13.5px; }
   .tier-opt .t-window{ font-size:11.5px; color:var(--ink-soft); margin-top:1px; }
   .tier-opt .t-cost{ font-family:'Space Grotesk'; font-weight:700; font-size:13px; color:var(--violet-700); }
@@ -430,10 +433,10 @@
 
   .bundle-row{ display:flex; gap:10px; overflow-x:auto; padding-bottom:4px; margin-bottom:6px; }
   .bundle-card{
-    flex:none; width:118px; border:1.5px solid var(--line); border-radius: var(--radius-sm);
-    padding:14px 12px; background:var(--surface); text-align:center;
+    flex:none; width:120px; border:none; border-radius: var(--radius-sm);
+    padding:16px 14px; background:var(--surface); text-align:center;
   }
-  .bundle-card.is-best{ border-color:var(--heat-500); background:#FFF6EE; position:relative; }
+  .bundle-card.is-best{ background:var(--violet-100); position:relative; }
   .bundle-card.is-best .tag{
     position:absolute; top:-9px; left:50%; transform:translateX(-50%);
     background:var(--heat-500); color:#fff; font-size:9px; font-weight:800;
@@ -457,15 +460,15 @@
   .profile-head h2{ margin:0 0 2px; font-size:17px; }
   .profile-head p{ margin:0; font-size:12px; color:var(--ink-soft); }
 
-  .list{ border:1px solid var(--line); border-radius: var(--radius-md); overflow:hidden; margin-bottom:20px; background:var(--surface); }
+  .list{ border:none; border-radius: var(--radius-md); overflow:hidden; margin-bottom:20px; background:var(--surface); }
   .list-item{
-    display:flex; align-items:center; gap:12px; padding:13px 15px;
-    border-bottom:1px solid var(--line); font-size:13.5px;
+    display:flex; align-items:center; gap:12px; padding:16px 20px;
+    border-bottom:1px solid rgba(255,255,255,0.05); font-size:14px;
   }
   .list-item:last-child{ border-bottom:none; }
   .list-item .ico{
-    width:30px; height:30px; border-radius:9px; flex:none;
-    background:var(--violet-100); color:var(--violet-700);
+    width:32px; height:32px; border-radius:10px; flex:none;
+    background:rgba(255,255,255,0.05); color:var(--violet-500);
     display:flex; align-items:center; justify-content:center;
   }
   .list-item .txt{ flex:1; }
@@ -497,10 +500,13 @@
 <div class="device-shell">
   <div class="app-frame">
 
-    <div class="status-bar">
-      <span class="dots">●●●</span>
-      <span id="clock">10:35</span>
-      <span>🔋 97%</span>
+    <div class="status-bar" style="background:transparent; color:rgba(255,255,255,0.6);">
+      <span id="clock">9:41</span>
+      <div style="display:flex; gap:6px;">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 3C7.41 3 3.41 4.89 0.5 7.94L12 21.5L23.5 7.94C20.59 4.89 16.59 3 12 3Z"/></svg>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M17 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2Zm-1 14H8V7h8v12Z"/></svg>
+        <span>78</span>
+      </div>
     </div>
 
     <div class="screens">
@@ -508,13 +514,11 @@
       <!-- =========================== TAB 1 : HOME =========================== -->
       <section class="screen active" id="screen-home">
 
-        <div class="call-strip" id="callStrip">
+        <div class="call-strip" id="callStrip" style="background:transparent; padding: 0 20px 10px;">
           <div class="left">
-            <span class="dot"></span>
-            <b id="callTier">standard</b>
-            <span id="callMeta">— no call yet</span>
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" style="color:var(--violet-500);"><path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" fill="currentColor" opacity="0.2"/><path d="M12 7L13 10H16L13.5 12L14.5 15L12 13L9.5 15L10.5 12L8 10H11L12 7Z" fill="currentColor"/></svg>
+            <span style="font-size:24px; font-weight:700; color:#fff; letter-spacing:0.05em;">L'SA</span>
           </div>
-          <div class="right" id="callTokens">— tokens</div>
         </div>
 
         <div class="scene" id="scene">
@@ -542,10 +546,11 @@
 
         <div class="chat-wrap">
           <div class="chat-head">
-            <div class="avatar">L</div>
+            <div class="avatar">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H5.17L4 17.17V4h16v12z"/></svg>
+            </div>
             <div>
-              <h2>Ask L'SA</h2>
-              <p>Answers straight from the current reading — no guessing</p>
+              <h2>Ask L'SA about heat</h2>
             </div>
           </div>
 
@@ -1100,18 +1105,42 @@ document.getElementById('apiKeySave').addEventListener('click', async ()=>{
   const input = document.getElementById('apiKeyInput');
   const status = document.getElementById('apiKeyStatus');
   const key = input.value.trim();
-  await setApiKey(key);
-  input.value = ''; // never leave the key sitting visible in the field after save
+  
   if (!key) {
-    status.textContent = 'saved';
+    status.textContent = 'enter a key first';
     setTimeout(()=>{ status.textContent = ''; }, 2000);
     return;
   }
-  status.textContent = 'checking…';
-  const location = currentReading?.location || (await getLastKnownLocation()) || 'phoenix';
-  const result = await loadReading(location, selectedTier, 'manual_refresh');
-  status.textContent = result?.data ? (result.cached ? 'cached' : 'live') : 'request failed';
-  setTimeout(()=>{ status.textContent = ''; }, 3000);
+
+  status.textContent = 'connecting…';
+  status.style.color = 'var(--violet-500)';
+  
+  try {
+    // 1. Save the key and disable mock mode
+    await setApiKey(key);
+    
+    // 2. Clear input
+    input.value = '';
+    
+    // 3. Force a fresh reading immediately
+    const location = currentReading?.location || (await getLastKnownLocation()) || 'phoenix';
+    // We pass 'manual_refresh' to trigger a fresh call if possible
+    const result = await loadReading(location, selectedTier, 'manual_refresh');
+    
+    if (result && result.data) {
+      status.textContent = result.cached ? 'connected (cached)' : 'connected (live)';
+      status.style.color = '#7CF29A';
+    } else {
+      status.textContent = 'connected (no data yet)';
+      status.style.color = 'var(--ink-soft)';
+    }
+  } catch (e) {
+    console.error("[L'SA] API key check failed:", e);
+    status.textContent = 'connection failed';
+    status.style.color = '#FF4D4D';
+  }
+  
+  setTimeout(()=>{ status.textContent = ''; }, 4000);
 });
 
 const mockToggle = document.getElementById('toggleMockMode');
