@@ -34,3 +34,6 @@ Add a Vite build that bundles the unchanged UI/service source, point Capacitor `
 - [x] Fix real FortyGuard API connection failure (verify async result extraction).
 - [x] Replace close-up mascot with four distant character reaction scenes (calm, sweating, umbrella, house).
 - [x] Ensure character scenes correctly swap based on `risk_level` from real API data.
+- [x] Fix null DOM crash in `loadReading` when updating elements that were removed in the dark UI refresh.
+- [x] Update persistent Android notification with recent API call details (location, status, temp, risk).
+- [x] Verify that saving an API key correctly triggers the real call and notification update.

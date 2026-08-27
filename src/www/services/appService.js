@@ -53,11 +53,16 @@ export async function checkTemperature(location, eventTrigger, tier) {
   // Native notification — the capability a browser page never had.
   // Fire-and-forget; a notification failure should never block the
   // in-app UI from updating.
+  // Native notification — the capability a browser page never had.
+  // Fire-and-forget; a notification failure should never block the
+  // in-app UI from updating. Now updates even on failure to show recent
+  // call details in the notification bar.
+  updateStatusNotification(result, tier).catch(() => {});
+
+  // TTS — same trigger point as the notification, gated to
+  // high/extreme only inside speakIfCritical() itself. Also
+  // fire-and-forget: TTS failing must never block the UI.
   if (result.data) {
-    updateStatusNotification(result, tier).catch(() => {});
-    // TTS — same trigger point as the notification, gated to
-    // high/extreme only inside speakIfCritical() itself. Also
-    // fire-and-forget: TTS failing must never block the UI.
     speakIfCritical(result.data).catch(() => {});
   }
 

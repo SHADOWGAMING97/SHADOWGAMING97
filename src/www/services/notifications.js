@@ -89,7 +89,19 @@ function fmtAgo(fetchedAtSec) {
 }
 
 function buildContent(checkResult, tierUsed) {
-  const { data, cached, cost, tokens_charged } = checkResult;
+  const { data, cached, cost, tokens_charged, reason, error } = checkResult;
+  
+  // Failure case: No fresh or cached data was returned.
+  if (!data) {
+    let failMsg = error || 'connection failed';
+    if (reason === 'no_qualifying_trigger') failMsg = 'waiting for next scheduled check';
+    return {
+      title: "L'SA — reading failed",
+      body: `Last attempt: ${failMsg} · ${new Date().toLocaleTimeString()}`,
+    };
+  }
+
+  // Success case: We have a valid reading (either live or from cache).
   const tierLabel = cached ? 'cached' : (cost?.tier || tierUsed);
   const body = cached
     ? `${data.temp_f}°F · cached · ${tokens_charged} tokens · ${fmtAgo(data.fetched_at)}`
@@ -112,7 +124,7 @@ function buildContent(checkResult, tierUsed) {
  * content refreshed).
  */
 export async function updateStatusNotification(checkResult, tierUsed) {
-  if (!checkResult || !checkResult.data) return;
+  if (!checkResult) return;
   await ensureNotificationPermission();
   const { title, body } = buildContent(checkResult, tierUsed);
 

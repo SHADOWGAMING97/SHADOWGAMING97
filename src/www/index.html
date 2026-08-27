@@ -1041,12 +1041,19 @@ async function loadReading(location, tier, eventTrigger){
   document.getElementById('decisionMsg').textContent = decisionFor(res.data);
 
   const strip = document.getElementById('callStrip');
-  strip.classList.toggle('is-cached', !!res.cached);
-  document.getElementById('callTier').textContent = res.cached ? 'cached' : (res.cost?.tier || tier);
-  document.getElementById('callMeta').textContent =
-    (res.cached ? `age ${res.cache_age_sec}s` : `waited ${res.cost?.waited_sec ?? 0}s`) +
-    ' · ' + fmtAgo(res.data.fetched_at);
-  document.getElementById('callTokens').textContent = `${res.tokens_charged} tokens · ${res.data.source}`;
+  if (strip) strip.classList.toggle('is-cached', !!res.cached);
+  
+  const tierEl = document.getElementById('callTier');
+  if (tierEl) tierEl.textContent = res.cached ? 'cached' : (res.cost?.tier || tier);
+  
+  const metaEl = document.getElementById('callMeta');
+  if (metaEl) {
+    metaEl.textContent = (res.cached ? `age ${res.cache_age_sec}s` : `waited ${res.cost?.waited_sec ?? 0}s`) +
+      ' · ' + fmtAgo(res.data.fetched_at);
+  }
+  
+  const tokensEl = document.getElementById('callTokens');
+  if (tokensEl) tokensEl.textContent = `${res.tokens_charged} tokens · ${res.data.source}`;
 
   refreshTokenPanel();
   return res;
