@@ -1032,8 +1032,11 @@ async function loadReading(location, tier, eventTrigger){
   currentReading = res.data;
   renderScene(res.data.risk_level);
 
-  document.getElementById('locName').textContent = formatLocationLabel(res.data.location);
-  document.getElementById('locSrc').textContent = res.cached ? 'cached' : 'live';
+  const locName = document.getElementById('locName');
+  if (locName) locName.textContent = formatLocationLabel(res.data.location);
+  
+  const locSrc = document.getElementById('locSrc');
+  if (locSrc) locSrc.textContent = res.cached ? 'cached' : 'live';
   document.getElementById('tempNum').innerHTML = `${res.data.temp_f}<sup>°F</sup>`;
   const badge = document.getElementById('condBadge');
   badge.textContent = res.data.risk_level.toUpperCase() + ' RISK';

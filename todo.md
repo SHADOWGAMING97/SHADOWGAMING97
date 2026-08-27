@@ -39,3 +39,6 @@ Add a Vite build that bundles the unchanged UI/service source, point Capacitor `
 - [x] Verify that saving an API key correctly triggers the real call and notification update.
 - [x] Improve the persistent Android notification content to be more polished and readable.
 - [x] Ensure the notification clearly summarizes heat status (temp, risk, location) and recent API call status.
+- [x] Fix the remaining "Cannot set properties of null" error on the Save screen (shown in the latest screenshot).
+- [x] Make the persistent notification even richer and more readable (clearer lines, better hierarchy).
+- [x] Rebuild and verify that the Save-triggered real call and notification bar update are both working correctly.

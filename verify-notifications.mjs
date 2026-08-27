@@ -29,15 +29,15 @@ async function buildContent(checkResult, tierUsed) {
     let failMsg = error || 'connection failed';
     if (reason === 'no_qualifying_trigger') failMsg = 'waiting for next check';
     return {
-      title: "L'SA — Heat monitoring",
-      body: `⚠️ Reading failed: ${failMsg} · ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`,
+      title: "L'SA: Monitoring Active",
+      body: `⚠️ Last attempt failed: ${failMsg}\nUpdated: ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`,
     };
   }
   const risk = data.risk_level.toUpperCase();
-  const loc = data.location.includes(',') ? 'Current Location' : data.location;
+  const loc = data.location.includes(',') ? 'Current location' : data.location;
   const time = new Date(data.fetched_at * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   const title = `L'SA: ${data.temp_f}°F — ${risk} RISK`;
-  const body = `${loc} · ${cached ? 'Cached' : 'Live'} · ${time}`;
+  const body = `📍 ${loc}\nStatus: ${cached ? 'Cached data' : 'Live API result'}\nLast updated: ${time}`;
   return { title, body };
 }
 
@@ -71,8 +71,8 @@ const failResult = {
 await updateStatusNotification(failResult, tier);
 assert.equal(calls.length, 2);
 assert.equal(calls[1].type, 'update');
-assert.ok(calls[1].options.title.includes('Heat monitoring'));
-assert.ok(calls[1].options.body.includes('Reading failed: API Error 401: Invalid Key'));
+assert.ok(calls[1].options.title.includes('Monitoring Active'));
+assert.ok(calls[1].options.body.includes('Last attempt failed: API Error 401: Invalid Key'));
 
 // Test 3: Cached reading
 const cachedResult = {
@@ -83,8 +83,8 @@ const cachedResult = {
 await updateStatusNotification(cachedResult, tier);
 assert.equal(calls.length, 3);
 assert.ok(calls[2].options.title.includes('72°F — LOW RISK'));
-assert.ok(calls[2].options.body.includes('Phoenix'));
-assert.ok(calls[2].options.body.includes('Cached'));
+assert.ok(calls[2].options.body.includes('📍 Phoenix'));
+assert.ok(calls[2].options.body.includes('Status: Cached data'));
 assert.ok(calls[2].options.body.includes(new Date(cachedResult.data.fetched_at * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })));
 
 console.log('PASS: Notification updates correctly for live, cached, and failed API calls.');

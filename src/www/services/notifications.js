@@ -96,18 +96,20 @@ function buildContent(checkResult, tierUsed) {
     let failMsg = error || 'connection failed';
     if (reason === 'no_qualifying_trigger') failMsg = 'waiting for next check';
     return {
-      title: "L'SA — Heat monitoring",
-      body: `⚠️ Reading failed: ${failMsg} · ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`,
+      title: "L'SA: Monitoring Active",
+      body: `⚠️ Last attempt failed: ${failMsg}\nUpdated: ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`,
     };
   }
 
   // Success case: We have a valid reading (either live or from cache).
   const risk = data.risk_level.toUpperCase();
-  const loc = data.location.includes(',') ? 'Current Location' : data.location;
+  const loc = data.location.includes(',') ? 'Current location' : data.location;
   const time = new Date(data.fetched_at * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   
+  // Format as a richer summary. Android 12+ often truncates long bodies,
+  // so we keep the most critical info (Temp/Risk) in the title.
   const title = `L'SA: ${data.temp_f}°F — ${risk} RISK`;
-  const body = `${loc} · ${cached ? 'Cached' : 'Live'} · ${time}`;
+  const body = `📍 ${loc}\nStatus: ${cached ? 'Cached data' : 'Live API result'}\nLast updated: ${time}`;
   
   return { title, body };
 }
