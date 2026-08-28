@@ -57,3 +57,6 @@ Add a Vite build that bundles the unchanged UI/service source, point Capacitor `
 - [x] Fix explicit startup location permission request.
 - [x] Ensure scheduler persistence and reboot survival via Android BootReceiver.
 - [x] Rebuild and verify the final hybrid APK and source package.
+- [x] Remove duplicate in-app top status bar and header.
+- [x] Fix explicit startup location permission prompt for Android.
+- [x] Rebuild and verify the final corrected hybrid APK and source package.

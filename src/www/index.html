@@ -194,14 +194,10 @@
               <div class="uv-val" id="uvIndex">5</div>
               <div class="uv-label" id="uvLevel">MODERATE UV</div>
             </div>
-            <div class="card forecast-card">
+            <div class="card forecast-card" id="forecastCard">
               <h3>Heat Forecast</h3>
-              <div class="chart-placeholder">
-                <div class="chart-bar" style="height: 40%;"></div>
-                <div class="chart-bar" style="height: 60%;"></div>
-                <div class="chart-bar active" style="height: 90%;"></div>
-                <div class="chart-bar" style="height: 70%;"></div>
-                <div class="chart-bar" style="height: 50%;"></div>
+              <div class="chart-placeholder" id="forecastChart">
+                <div style="font-size:10px; opacity:0.4; width:100%; text-align:center;">Awaiting regional data…</div>
               </div>
             </div>
           </div>
@@ -348,6 +344,18 @@ function updateUI(res) {
 
   // Text
   document.getElementById('locName').textContent = res.data.location.includes(',') ? 'Current Location' : res.data.location;
+  
+  // Forecast
+  const chart = document.getElementById('forecastChart');
+  if (res.data.forecast && Array.isArray(res.data.forecast)) {
+    chart.innerHTML = '';
+    res.data.forecast.forEach((val, i) => {
+      const bar = document.createElement('div');
+      bar.className = 'chart-bar' + (i === 0 ? ' active' : '');
+      bar.style.height = val + '%';
+      chart.appendChild(bar);
+    });
+  }
   document.getElementById('locSrc').textContent = res.cached ? 'cached' : 'live';
   document.getElementById('tempNum').innerHTML = `${res.data.temp_f}<sup>°F</sup>`;
   const badge = document.getElementById('condBadge');
@@ -355,10 +363,19 @@ function updateUI(res) {
   badge.className = 'cond-badge risk-' + risk;
   document.getElementById('decisionMsg').textContent = decisionFor(res.data);
 
-  // UV
-  const uv = risk === 'extreme' ? 11 : risk === 'high' ? 9 : 5;
-  document.getElementById('uvIndex').textContent = uv;
-  document.getElementById('uvLevel').textContent = uv > 8 ? 'VERY HIGH UV' : 'MODERATE UV';
+  // UV & Humidity
+  const uvEl = document.getElementById('uvIndex');
+  const uvLvlEl = document.getElementById('uvLevel');
+  if (res.data.uv_index != null) {
+    uvEl.textContent = res.data.uv_index;
+    uvLvlEl.textContent = res.data.uv_index > 8 ? 'VERY HIGH UV' : res.data.uv_index > 5 ? 'HIGH UV' : 'MODERATE UV';
+  } else if (res.data.humidity != null) {
+    uvEl.textContent = res.data.humidity + '%';
+    uvLvlEl.textContent = 'HUMIDITY';
+  } else {
+    uvEl.textContent = '—';
+    uvLvlEl.textContent = 'NO UV DATA';
+  }
   
   refreshTokenPanel();
 }

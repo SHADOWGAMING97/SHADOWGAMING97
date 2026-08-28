@@ -45,6 +45,7 @@ const permissions = [
   'android.permission.FOREGROUND_SERVICE_DATA_SYNC',
   'android.permission.WAKE_LOCK',
   'android.permission.RECEIVE_BOOT_COMPLETED',
+  'android.permission.ACCESS_BACKGROUND_LOCATION',
 ];
 for (const permission of permissions) {
   if (!manifest.includes(`android:name="${permission}"`)) {
