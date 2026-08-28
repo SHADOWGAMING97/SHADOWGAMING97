@@ -23,6 +23,8 @@ jobs:
         run: npm ci
       - name: Build web bundle
         run: npm run build:web
+      - name: Generate Android project
+        run: npx cap add android
       - name: Apply uploaded Android configuration
         run: node scripts/prepare-android.mjs
       - name: Sync uploaded Android project
