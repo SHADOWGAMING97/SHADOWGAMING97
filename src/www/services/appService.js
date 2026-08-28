@@ -18,6 +18,7 @@ import { smartTemperatureCheck } from './smartTemperature.js';
 import { resolveLocation as _resolveLocation } from './geolocation.js';
 import { updateStatusNotification, ensureNotificationPermission, startIdleNotification } from './notifications.js';
 import { speakIfCritical } from './tts.js';
+import { initScheduler, recordCallSuccess, isCallDue, getSchedulerState } from './scheduler.js';
 
 // Module-level singletons, mirroring the Python backend's singleton
 // pattern (temperature_cache, tiered_manager, token_system module
@@ -64,9 +65,25 @@ export async function checkTemperature(location, eventTrigger, tier) {
   // fire-and-forget: TTS failing must never block the UI.
   if (result.data) {
     speakIfCritical(result.data).catch(() => {});
+    recordCallSuccess().catch(() => {});
   }
 
   return result;
+}
+
+/**
+ * Background trigger for scheduled calls.
+ * UI or Foreground service should call this every ~10-60s.
+ */
+export async function checkScheduledCall(locationResolver) {
+  if (!isCallDue()) return null;
+  
+  const { selectedTier } = getSchedulerState();
+  const loc = await locationResolver();
+  if (!loc || !loc.coordStr) return null;
+
+  console.log(`[Kira] triggering scheduled call for tier: ${selectedTier}`);
+  return checkTemperature(loc.coordStr, 'scheduled_check', selectedTier);
 }
 
 export async function getTokenBalance() {
@@ -101,6 +118,11 @@ export async function initNotifications() {
   } catch (e) {
     console.warn("[Kira] startup foreground notification failed:", e.message || e);
   }
+}
+
+export async function bootServices() {
+  await initScheduler();
+  await initNotifications();
 }
 
 // ---- Settings-screen config functions (Profile tab API key field) ----

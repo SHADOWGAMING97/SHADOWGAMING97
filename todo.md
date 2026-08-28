@@ -42,6 +42,6 @@ Add a Vite build that bundles the unchanged UI/service source, point Capacitor `
 - [x] Fix the remaining "Cannot set properties of null" error on the Save screen (shown in the latest screenshot).
 - [x] Make the persistent notification even richer and more readable (clearer lines, better hierarchy).
 - [x] Rebuild and verify that the Save-triggered real call and notification bar update are both working correctly.
-- [ ] Rename all user-facing LSA branding to Kira, including app title, status/notification labels, preview text, and package metadata descriptions.
-- [ ] Replace the Android launcher icon with a custom Kira Heat Intelligence icon across adaptive and density-specific resources.
-- [ ] Rebuild and verify the Kira-branded APK, check for stale user-facing LSA references, and sync the final source/archive.
+- [x] Rename all user-facing LSA branding to Kira, including app title, status/notification labels, preview text, and package metadata descriptions.
+- [x] Replace the Android launcher icon with a custom Kira Heat Intelligence icon across adaptive and density-specific resources.
+- [x] Rebuild and verify the Kira-branded APK, check for stale user-facing LSA references, and sync the final source/archive.
