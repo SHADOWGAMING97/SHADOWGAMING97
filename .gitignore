@@ -1,6 +1,0 @@
-node_modules/
-dist/
-android/
-*.apk
-*.aab
-.DS_Store
