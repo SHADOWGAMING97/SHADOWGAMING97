@@ -8,7 +8,7 @@
 import { validTier } from "./tieredRequest.js";
 
 export const VALID_EVENT_TRIGGERS = new Set([
-  "outdoor_mention", "morning_check", "location_change", "manual_refresh",
+  "outdoor_mention", "morning_check", "location_change", "manual_refresh", "scheduled_check",
 ]);
 
 /**

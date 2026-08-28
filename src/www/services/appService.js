@@ -118,6 +118,7 @@ export async function initNotifications() {
 }
 
 export async function bootServices() {
+  await tokenSystem.init(USER_ID);
   await initScheduler();
   await initNotifications();
 }

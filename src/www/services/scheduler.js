@@ -29,6 +29,9 @@ export async function initScheduler() {
       console.warn("[Kira] scheduler state corrupt, resetting");
     }
   }
+  if (!state.nextCallAt) {
+    await recalculateNextCall();
+  }
   initialized = true;
   notify();
 }

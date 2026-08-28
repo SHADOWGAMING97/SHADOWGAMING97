@@ -692,12 +692,14 @@
               <div class="txt">Heat alerts<small>on-screen + spoken, extreme/high only</small></div>
               <button class="toggle is-on" id="toggleAlerts"></button>
             </div>
-            <div class="list-item">
+            <div class="list-item location-setting">
               <div class="ico">
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20Zm1 15h-2v-6h2v6Zm0-8h-2V7h2v2Z"/></svg>
               </div>
               <div class="txt">Location<small id="locStatusLine">checking permission…</small></div>
               <span class="val" id="locStatusVal">—</span>
+              <button id="btnRefreshLoc" type="button" style="padding:7px 9px; border:1px solid var(--line); border-radius:8px; color:var(--violet-500); font-size:10px; font-weight:700;">CHECK</button>
+              <button id="btnOpenLocationSettings" type="button" style="padding:7px 9px; border:1px solid var(--line); border-radius:8px; color:var(--violet-500); font-size:10px; font-weight:700;">APP SETTINGS</button>
             </div>
             <div class="list-item">
               <div class="ico">
@@ -790,6 +792,7 @@ import {
   setScheduledTier, setCustomInterval 
 } from './services/scheduler.js';
 import { TEMPLATES, decisionFor } from './services/templates.js';
+import { AppLauncher } from '@capacitor/app-launcher';
 
 /* =========================================================
    TAB SWITCHING
@@ -1150,12 +1153,35 @@ async function refreshTokenPanel(){
 async function resolveLocation(){
   const statusLine = document.getElementById('locStatusLine');
   const statusVal  = document.getElementById('locStatusVal');
-
+  if (statusLine) statusLine.textContent = 'requesting Android permission…';
   const result = await resolveDeviceLocation();
-  statusLine.textContent = result.statusLine;
-  statusVal.textContent = result.statusVal;
-  loadReading(result.coordStr, selectedTier, result.trigger);
+  if (statusLine) statusLine.textContent = result.statusLine;
+  if (statusVal) statusVal.textContent = result.statusVal;
+  await loadReading(result.coordStr, selectedTier, result.trigger);
 }
+
+const btnRefreshLoc = document.getElementById('btnRefreshLoc');
+btnRefreshLoc?.addEventListener('click', () => resolveLocation().catch((e) => {
+  const statusLine = document.getElementById('locStatusLine');
+  if (statusLine) statusLine.textContent = 'permission unavailable — use APP SETTINGS';
+  console.warn('[Kira] manual location check failed:', e);
+}));
+
+const btnOpenLocationSettings = document.getElementById('btnOpenLocationSettings');
+btnOpenLocationSettings?.addEventListener('click', async () => {
+  const statusLine = document.getElementById('locStatusLine');
+  try {
+    if (window.Capacitor?.isNativePlatform?.()) {
+      await AppLauncher.openUrl({ url: 'app-settings:' });
+      if (statusLine) statusLine.textContent = 'enable Location in Android settings, then tap CHECK';
+    } else if (statusLine) {
+      statusLine.textContent = 'enable Location in device settings, then tap CHECK';
+    }
+  } catch (e) {
+    if (statusLine) statusLine.textContent = 'Android Settings → Apps → Kira → Permissions → Location';
+    console.warn('[Kira] app settings open failed:', e);
+  }
+});
 
 document.getElementById('toggleAlerts').addEventListener('click', function(){
   this.classList.toggle('is-on');
@@ -1235,15 +1261,17 @@ mockToggle.addEventListener('click', async function(){
    ========================================================= */
 addBubble("Hi — ask me if it's safe out there, or how hot it is.", 'lsa');
 (async () => {
-  try {
-    await bootServices();
-  } catch (e) {
-    console.warn("[Kira] service boot failed:", e.message || e);
-  }
+  // Request location before notification setup so a notification prompt or
+  // foreground-service startup can never delay the location dialog.
   try {
     await resolveLocation();
   } catch (e) {
     console.warn("[Kira] location startup failed:", e.message || e);
+  }
+  try {
+    await bootServices();
+  } catch (e) {
+    console.warn("[Kira] service boot failed:", e.message || e);
   }
   
   // Background intelligence check loop
