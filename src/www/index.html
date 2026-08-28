@@ -699,7 +699,7 @@
               <div class="txt">Location<small id="locStatusLine">checking permission…</small></div>
               <span class="val" id="locStatusVal">—</span>
               <button id="btnRefreshLoc" type="button" style="padding:7px 9px; border:1px solid var(--line); border-radius:8px; color:var(--violet-500); font-size:10px; font-weight:700;">CHECK</button>
-              <button id="btnOpenLocationSettings" type="button" style="padding:7px 9px; border:1px solid var(--line); border-radius:8px; color:var(--violet-500); font-size:10px; font-weight:700;">APP SETTINGS</button>
+              <button id="btnOpenLocationSettings" type="button" style="padding:7px 9px; border:1px solid var(--line); border-radius:8px; color:var(--violet-500); font-size:10px; font-weight:700;">APP SETTINGS</button><button id="btnOpenGpsSettings" type="button" style="padding:7px 9px; border:1px solid var(--line); border-radius:8px; color:var(--violet-500); font-size:10px; font-weight:700;">GPS SETTINGS</button>
             </div>
             <div class="list-item">
               <div class="ico">
@@ -793,6 +793,8 @@ import {
 } from './services/scheduler.js';
 import { TEMPLATES, decisionFor } from './services/templates.js';
 import { AppLauncher } from '@capacitor/app-launcher';
+import { registerPlugin } from '@capacitor/core';
+const LocationControl = registerPlugin('LocationControl');
 
 /* =========================================================
    TAB SWITCHING
@@ -1168,6 +1170,7 @@ btnRefreshLoc?.addEventListener('click', () => resolveLocation().catch((e) => {
 }));
 
 const btnOpenLocationSettings = document.getElementById('btnOpenLocationSettings');
+const btnOpenGpsSettings = document.getElementById('btnOpenGpsSettings');
 btnOpenLocationSettings?.addEventListener('click', async () => {
   const statusLine = document.getElementById('locStatusLine');
   try {
@@ -1185,6 +1188,19 @@ btnOpenLocationSettings?.addEventListener('click', async () => {
 
 document.getElementById('toggleAlerts').addEventListener('click', function(){
   this.classList.toggle('is-on');
+});
+
+btnOpenGpsSettings?.addEventListener('click', async () => {
+  const statusLine = document.getElementById('locStatusLine');
+  try {
+    if (window.Capacitor?.isNativePlatform?.()) {
+      await LocationControl.openLocationSettings();
+      if (statusLine) statusLine.textContent = 'enable Location/GPS, then tap CHECK';
+    }
+  } catch (e) {
+    if (statusLine) statusLine.textContent = 'Android Settings → Location → turn on Location';
+    console.warn('[Kira] GPS settings open failed:', e);
+  }
 });
 
 /* =========================================================

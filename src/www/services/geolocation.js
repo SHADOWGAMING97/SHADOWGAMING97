@@ -1,3 +1,4 @@
+import { registerPlugin } from '@capacitor/core';
 /**
  * Geolocation — hybrid on-open resolution, per explicit instruction:
  *   - Every app open ACTIVELY checks/requests location permission —
@@ -21,6 +22,8 @@
 
 import { Geolocation } from '@capacitor/geolocation';
 import { storageAdapter } from './storage.js';
+
+const LocationControl = registerPlugin('LocationControl');
 
 const COORDS_KEY = 'lsa_coords';
 const COORDS_TTL_MS = 5 * 24 * 60 * 60 * 1000; // 5 days, per explicit instruction
@@ -72,7 +75,16 @@ export async function resolveLocation(locationManager, userId) {
   // not show a system prompt (requestPermissions() does, only if
   // needed below), so this is cheap to do unconditionally.
   let permStatus;
+  let nativeState = null;
   try {
+    nativeState = await LocationControl.getState();
+  } catch (e) {
+    // Browser/web fallback or older APK without the helper plugin.
+  }
+  try {
+    if (nativeState && !nativeState.permissionGranted) {
+      nativeState = await LocationControl.requestLocationPermission();
+    }
     permStatus = await Geolocation.checkPermissions();
   } catch (e) {
     // This branch firing on every real-device run (not just genuinely
@@ -98,7 +110,7 @@ export async function resolveLocation(locationManager, userId) {
 
   if (permStatus.location !== 'granted') {
     try {
-      permStatus = await Geolocation.requestPermissions();
+      permStatus = await Geolocation.requestPermissions({ permissions: ['location'] });
     } catch (e) {
       permStatus = { location: 'denied' };
     }
@@ -110,13 +122,18 @@ export async function resolveLocation(locationManager, userId) {
     // instruction ("if location is on then let use location only to
     // use coordinate").
     try {
-      const pos = await Geolocation.getCurrentPosition();
+      const pos = await Geolocation.getCurrentPosition({
+        enableHighAccuracy: true,
+        timeout: 30000,
+        maximumAge: 0,
+      });
       const coordStr = await storeCoords(pos.coords.latitude, pos.coords.longitude);
       try {
         await locationManager.recordLocation(userId, coordStr);
       } catch (e) { /* local storage write failed — coords are still returned to the caller below */ }
       return { coordStr, statusLine: 'live GPS · saved', statusVal: 'on', trigger: 'location_change' };
     } catch (e) {
+      console.warn('[Kira] GPS fix failed:', e?.message || e);
       // getCurrentPosition failed even though permission was granted
       // (GPS off at the hardware/OS toggle level despite app
       // permission being granted, timeout, etc.) — fall through to
@@ -128,6 +145,9 @@ export async function resolveLocation(locationManager, userId) {
   // instruction, use the stored coordinate ONLY if it's still within
   // its 5-day window; otherwise there's nothing cached worth trusting
   // and we fall through further.
+  if (nativeState && nativeState.permissionGranted && !nativeState.providerEnabled) {
+    return await fallbackChain(locationManager, userId, 'Location services are off — enable GPS', 'off');
+  }
   return await fallbackChain(locationManager, userId, 'off — using last known', 'off');
 }
 
