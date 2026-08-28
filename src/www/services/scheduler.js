@@ -29,6 +29,9 @@ export async function initScheduler() {
       console.warn("[Kira] scheduler state corrupt, resetting");
     }
   }
+  if (!state.nextCallAt) {
+    await recalculateNextCall();
+  }
   initialized = true;
   notify();
 }
@@ -84,6 +87,22 @@ async function recalculateNextCall() {
     state.nextCallAt = Date.now() + 5000; // trigger in 5s
   }
   
+  await save();
+}
+
+/**
+ * Record that a scheduled attempt happened, even if the API failed.
+ * This prevents nextCallAt from remaining overdue forever.
+ */
+export async function recordCallAttempt() {
+  state.lastCallAt = Date.now();
+  let intervalMs;
+  if (state.customIntervalMin > 0) {
+    intervalMs = state.customIntervalMin * 60 * 1000;
+  } else {
+    intervalMs = PRICING_TIERS[state.selectedTier].max_delay_sec * 1000;
+  }
+  state.nextCallAt = state.lastCallAt + intervalMs;
   await save();
 }
 

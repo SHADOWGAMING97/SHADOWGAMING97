@@ -1,3 +1,4 @@
+import { storageAdapter } from './storage.js';
 /**
  * Token System — direct port of app/services/token_system.py
  * Same token costs, same savings formula, same loyalty thresholds.
@@ -27,8 +28,39 @@ export const TIER_TO_COST_KEY = {
 
 export class TokenSystem {
   constructor() {
-    this._history = new Map(); // userId -> array of records
-    this._balance = new Map(); // userId -> number
+    this._history = new Map();
+    this._balance = new Map();
+    this._ready = new Map();
+  }
+
+  async init(userId) {
+    if (this._ready.has(userId)) return this._ready.get(userId);
+    const promise = (async () => {
+      const raw = await storageAdapter.get(`tokens:${userId}`);
+      if (raw) {
+        try {
+          const saved = JSON.parse(raw);
+          this._history.set(userId, Array.isArray(saved.history) ? saved.history : []);
+          this._balance.set(userId, Number.isFinite(saved.balance) ? saved.balance : 100);
+        } catch {
+          this._history.set(userId, []);
+          this._balance.set(userId, 100);
+        }
+      } else {
+        this._history.set(userId, []);
+        this._balance.set(userId, 100);
+      }
+    })();
+    this._ready.set(userId, promise);
+    return promise;
+  }
+
+  _persist(userId) {
+    const payload = JSON.stringify({
+      balance: this.getBalance(userId),
+      history: this.getHistory(userId),
+    });
+    storageAdapter.set(`tokens:${userId}`, payload).catch((error) => console.warn('[Kira] token persistence failed:', error));
   }
 
   _costFor(tier, cached) {
@@ -42,8 +74,9 @@ export class TokenSystem {
     const record = { tier, cached, cost, ts: Date.now() / 1000 };
     if (!this._history.has(userId)) this._history.set(userId, []);
     this._history.get(userId).push(record);
-    const currentBalance = this._balance.has(userId) ? this._balance.get(userId) : 100; // 100 starting tokens, matches Python
+    const currentBalance = this._balance.has(userId) ? this._balance.get(userId) : 100;
     this._balance.set(userId, currentBalance - cost);
+    this._persist(userId);
     return record;
   }
 
@@ -111,6 +144,7 @@ export class TokenSystem {
   topUp(userId, amount) {
     const newBalance = this.getBalance(userId) + amount;
     this._balance.set(userId, newBalance);
+    this._persist(userId);
     return newBalance;
   }
 }

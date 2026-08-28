@@ -18,7 +18,7 @@ import { smartTemperatureCheck } from './smartTemperature.js';
 import { resolveLocation as _resolveLocation } from './geolocation.js';
 import { updateStatusNotification, ensureNotificationPermission, startIdleNotification } from './notifications.js';
 import { speakIfCritical } from './tts.js';
-import { initScheduler, recordCallSuccess, isCallDue, getSchedulerState } from './scheduler.js';
+import { initScheduler, recordCallSuccess, recordCallAttempt, isCallDue, getSchedulerState } from './scheduler.js';
 
 // Module-level singletons, mirroring the Python backend's singleton
 // pattern (temperature_cache, tiered_manager, token_system module
@@ -74,13 +74,28 @@ export async function checkTemperature(location, eventTrigger, tier) {
 /**
  * Background trigger for scheduled calls.
  */
+let scheduledCheckInFlight = false;
+
 export async function checkScheduledCall(locationResolver) {
-  if (!isCallDue()) return null;
+  if (scheduledCheckInFlight || !isCallDue()) return null;
+  scheduledCheckInFlight = true;
   const { selectedTier } = getSchedulerState();
-  const loc = await locationResolver();
-  if (!loc || !loc.coordStr) return null;
-  console.log(`[Kira] triggering scheduled call for tier: ${selectedTier}`);
-  return checkTemperature(loc.coordStr, 'scheduled_check', selectedTier);
+  try {
+    const loc = await locationResolver();
+    if (!loc || !loc.coordStr) {
+      await recordCallAttempt();
+      return { data: null, reason: 'location_unavailable', error: 'Location unavailable; next check scheduled.' };
+    }
+    console.log(`[Kira] triggering scheduled call for tier: ${selectedTier}`);
+    const result = await checkTemperature(loc.coordStr, 'scheduled_check', selectedTier);
+    if (!result?.data) await recordCallAttempt();
+    return result;
+  } catch (error) {
+    await recordCallAttempt();
+    return { data: null, reason: 'scheduled_check_failed', error: error.message || String(error) };
+  } finally {
+    scheduledCheckInFlight = false;
+  }
 }
 
 export async function getTokenBalance() {
@@ -118,6 +133,7 @@ export async function initNotifications() {
 }
 
 export async function bootServices() {
+  await tokenSystem.init(USER_ID);
   await initScheduler();
   await initNotifications();
 }

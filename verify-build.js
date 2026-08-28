@@ -35,8 +35,7 @@ for (const marker of ['FortyGuard', 'Kira', 'Heat Intelligence', 'monitoring act
 }
 
 for (const state of ['low', 'moderate', 'high', 'extreme']) {
-  const found = distFiles.some((file) => new RegExp(`assets/lsa_scene_${state}.*\\.png$`).test(file));
-  if (!found) {
+  if (!distFiles.some((file) => new RegExp(`assets/lsa_scene_${state}-.*\\.png$`).test(file))) {
     fail(`bundled Kira ${state} scene asset is missing from dist/assets.`);
   }
 }

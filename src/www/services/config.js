@@ -46,13 +46,13 @@ export async function loadConfig() {
   // Default to mock mode (forceMockMode = true) when nothing has been
   // configured yet — same "safe by default" posture as the Python
   // config, where USE_MOCK_DATA is true whenever no key is present.
-  const forceMockMode = forceMockModeRaw === null ? true : forceMockModeRaw === 'true';
+  const forceMockMode = forceMockModeRaw === null ? false : forceMockModeRaw === 'true';
 
   const cacheTtlTemperature = parseInt(await storageAdapter.get(KEYS.cacheTtlTemperature), 10) || DEFAULTS.cacheTtlTemperature;
   const cacheTtlHeatmap = parseInt(await storageAdapter.get(KEYS.cacheTtlHeatmap), 10) || DEFAULTS.cacheTtlHeatmap;
   const locationRetentionDays = parseInt(await storageAdapter.get(KEYS.locationRetentionDays), 10) || DEFAULTS.locationRetentionDays;
 
-  const useMockData = forceMockMode || !apiKey;
+  const useMockData = forceMockMode;
 
   return {
     fortyguardApiKey: apiKey,
