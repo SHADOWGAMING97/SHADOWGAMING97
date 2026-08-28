@@ -248,7 +248,7 @@
         <div class="settings-group">
           <h3>*General Setting*</h3>
           <div class="settings-list">
-            <div class="settings-item"><div class="icon"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg></div><div class="text"><h4>Location</h4><p id="locStatusLine">Checking permission…</p></div><span class="val" id="locStatusVal">OFF</span></div>
+            <div class="settings-item" id="btnRefreshLoc" style="cursor:pointer;"><div class="icon"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg></div><div class="text"><h4>Location</h4><p id="locStatusLine">Checking permission…</p></div><span class="val" id="locStatusVal">OFF</span><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="3" opacity="0.3" style="margin-left:8px;"><path d="m9 18 6-6-6-6"/></svg></div>
             <div class="settings-item"><div class="icon"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg></div><div class="text"><h4>Schedule</h4><p>Check interval in minutes</p></div><input type="number" id="scheduleInput" value="0" class="input-box" /></div>
             <div class="settings-item"><div class="icon">°F</div><div class="text"><h4>Units</h4><p>Toggle Celsius/Fahrenheit</p></div><span class="val" id="unitVal">Fahrenheit</span></div>
           </div>
@@ -301,10 +301,13 @@ let selectedTier = 'standard';
 document.querySelectorAll('.tab-btn').forEach(btn => {
   btn.addEventListener('click', () => {
     const tab = btn.dataset.tab;
+    console.log(`[Kira] switching to tab: ${tab}`);
     document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
     document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
     btn.classList.add('active');
-    document.getElementById('screen-' + tab).classList.add('active');
+    const screen = document.getElementById('screen-' + tab);
+    if (screen) screen.classList.add('active');
+    else console.warn(`[Kira] screen not found for tab: ${tab}`);
   });
 });
 
@@ -426,33 +429,66 @@ document.getElementById('scheduleInput').addEventListener('change', async (e) =>
   await setCustomInterval(e.target.value);
 });
 
-document.getElementById('btnApiSettings').addEventListener('click', () => {
-  const p = document.getElementById('apiPanel');
-  p.style.display = p.style.display === 'none' ? 'block' : 'none';
-});
+const btnRefreshLoc = document.getElementById('btnRefreshLoc');
+if (btnRefreshLoc) {
+  btnRefreshLoc.addEventListener('click', async () => {
+    const statusLine = document.getElementById('locStatusLine');
+    const statusVal = document.getElementById('locStatusVal');
+    if (statusLine) statusLine.textContent = 'Requesting…';
+    const loc = await resolveDeviceLocation();
+    if (statusVal) statusVal.textContent = loc.statusVal.toUpperCase();
+    if (statusLine) statusLine.textContent = `Location: ${loc.statusLine}`;
+    const res = await checkTemperature(loc.coordStr, 'manual_refresh', selectedTier);
+    updateUI(res);
+  });
+}
 
-document.getElementById('apiKeySave').addEventListener('click', async () => {
-  const status = document.getElementById('apiKeyStatus');
-  const key = document.getElementById('apiKeyInput').value.trim();
-  if (!key) return;
-  status.textContent = 'CONNECTING…';
-  try {
-    await setApiKey(key);
-    const loc = currentReading?.location || (await getLastKnownLocation()) || 'phoenix';
-    const res = await checkTemperature(loc, 'manual_refresh', selectedTier);
-    if (res.data) {
-      status.textContent = res.cached ? 'CONNECTED (CACHED)' : 'CONNECTED (LIVE)';
-      status.style.color = '#10b981';
-      updateUI(res);
-    } else {
-      status.textContent = 'FAILED';
-      status.style.color = '#ef4444';
+const btnApiSettings = document.getElementById('btnApiSettings');
+if (btnApiSettings) {
+  btnApiSettings.addEventListener('click', () => {
+    const p = document.getElementById('apiPanel');
+    if (p) p.style.display = p.style.display === 'none' ? 'block' : 'none';
+  });
+}
+
+const apiKeySave = document.getElementById('apiKeySave');
+if (apiKeySave) {
+  apiKeySave.addEventListener('click', async () => {
+    const status = document.getElementById('apiKeyStatus');
+    const input = document.getElementById('apiKeyInput');
+    const key = input ? input.value.trim() : '';
+    if (!key) {
+      if (status) status.textContent = 'ENTER KEY';
+      return;
     }
-  } catch (e) {
-    status.textContent = 'ERROR';
-    status.style.color = '#ef4444';
-  }
-});
+    if (status) {
+      status.textContent = 'CONNECTING…';
+      status.style.color = 'var(--primary)';
+    }
+    try {
+      await setApiKey(key);
+      const loc = currentReading?.location || (await getLastKnownLocation()) || 'phoenix';
+      const res = await checkTemperature(loc, 'manual_refresh', selectedTier);
+      if (res && res.data) {
+        if (status) {
+          status.textContent = res.cached ? 'CONNECTED (CACHED)' : 'CONNECTED (LIVE)';
+          status.style.color = '#10b981';
+        }
+        updateUI(res);
+      } else {
+        if (status) {
+          status.textContent = res?.error ? `FAILED: ${res.error.slice(0,15)}` : 'FAILED';
+          status.style.color = '#ef4444';
+        }
+      }
+    } catch (e) {
+      if (status) {
+        status.textContent = 'ERROR';
+        status.style.color = '#ef4444';
+      }
+    }
+  });
+}
 
 /* Chat */
 const RISK_WORDS = ["safe","risky","dangerous","outside","go out","risk"];

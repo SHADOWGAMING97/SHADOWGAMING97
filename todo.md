@@ -60,3 +60,7 @@ Add a Vite build that bundles the unchanged UI/service source, point Capacitor `
 - [x] Remove duplicate in-app top status bar and header.
 - [x] Fix explicit startup location permission prompt for Android.
 - [x] Rebuild and verify the final corrected hybrid APK and source package.
+- [x] Remove all hardcoded/placeholder UI data (UV index, forecast, decision text).
+- [x] Ensure all dashboard details are sourced exclusively from API or actual device state.
+- [x] Final verification of API-only data flow and startup location prompt.
+- [x] Rebuild and deliver the final API-only hybrid APK and source package.
