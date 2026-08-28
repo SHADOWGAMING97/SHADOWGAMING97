@@ -2,7 +2,7 @@ name: Build Uploaded Source APK
 on:
   workflow_dispatch:
 permissions:
-  contents: read
+  contents: write
 jobs:
   build-apk:
     runs-on: ubuntu-latest
@@ -34,6 +34,10 @@ jobs:
       - name: Build debug APK
         working-directory: android
         run: ./gradlew assembleDebug
+      - name: Publish APK release asset
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create uploaded-source-apk-${{ github.run_number }} android/app/build/outputs/apk/debug/app-debug.apk --target ${{ github.sha }} --title "Kira APK from uploaded source" --notes "Built exclusively from the user-uploaded ZIP source."
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
