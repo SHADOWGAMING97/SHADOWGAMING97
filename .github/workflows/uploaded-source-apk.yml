@@ -23,8 +23,8 @@ jobs:
         run: npm ci
       - name: Build web bundle
         run: npm run build:web
-      - name: Generate Android project
-        run: npx cap add android
+      - name: Generate Android project if needed
+        run: if [ ! -d android ]; then npx cap add android; fi
       - name: Apply uploaded Android configuration
         run: node scripts/prepare-android.mjs
       - name: Sync uploaded Android project
