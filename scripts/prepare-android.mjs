@@ -1,7 +1,7 @@
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 
 const manifestPath = 'android/app/src/main/AndroidManifest.xml';
-const iconPath = 'android/app/src/main/res/drawable/ic_stat_lsa.xml';
+const iconPath = 'android/app/src/main/res/drawable/ic_stat_kira.xml';
 
 let manifest = await readFile(manifestPath, 'utf8');
 

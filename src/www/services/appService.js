@@ -99,7 +99,7 @@ export async function initNotifications() {
   try {
     await startIdleNotification();
   } catch (e) {
-    console.warn("[L'SA] startup foreground notification failed:", e.message || e);
+    console.warn("[Kira] startup foreground notification failed:", e.message || e);
   }
 }
 

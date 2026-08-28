@@ -19,13 +19,13 @@
     document.documentElement.classList.add('lsa-native');
   }
 </script>
-<title>L'SA — Heat Intelligence</title>
+<title>Kira — Heat Intelligence</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
   :root{
-    /* ---- L'SA identity: white + violet (the app's own chrome) ---- */
+    /* ---- Kira identity: white + violet (the app's own chrome) ---- */
     --paper:      #0A0A0A;
     --paper-dim:  #141414;
     --surface:    #1A1429;
@@ -84,7 +84,7 @@
     position:relative;
   }
   .device-shell::before{
-    content:"L'SA — hackathon build preview";
+    content:"Kira — hackathon build preview";
     display:block;
     text-align:center;
     font-family:'Space Grotesk',monospace;
@@ -520,7 +520,7 @@
         <div class="call-strip" id="callStrip" style="background:transparent; padding: 0 20px 10px;">
           <div class="left">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" style="color:var(--violet-500);"><path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" fill="currentColor" opacity="0.2"/><path d="M12 7L13 10H16L13.5 12L14.5 15L12 13L9.5 15L10.5 12L8 10H11L12 7Z" fill="currentColor"/></svg>
-            <span style="font-size:24px; font-weight:700; color:#fff; letter-spacing:0.05em;">L'SA</span>
+            <span style="font-size:24px; font-weight:700; color:#fff; letter-spacing:0.05em;">Kira</span>
           </div>
         </div>
 
@@ -553,7 +553,7 @@
               <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H5.17L4 17.17V4h16v12z"/></svg>
             </div>
             <div>
-              <h2>Ask L'SA about heat</h2>
+              <h2>Ask Kira about heat</h2>
             </div>
           </div>
 
@@ -589,7 +589,7 @@
           </div>
 
           <p class="eyebrow">check frequency</p>
-          <h3 class="section-title">How often should L'SA check?</h3>
+          <h3 class="section-title">How often should Kira check?</h3>
           <p class="section-sub">Slower checks cost fewer tokens — waiting is rewarded, never forced.</p>
 
           <div class="tier-group" id="tierGroup">
@@ -652,7 +652,7 @@
             <div class="pic">L</div>
             <div>
               <h2>Lucky</h2>
-              <p>Building L'SA · FortyGuard Hackathon 2026</p>
+              <p>Building Kira · FortyGuard Hackathon 2026</p>
             </div>
           </div>
 
@@ -1166,7 +1166,7 @@ document.getElementById('apiKeySave').addEventListener('click', async ()=>{
       status.style.color = result?.error ? '#FF4D4D' : 'var(--ink-soft)';
     }
   } catch (e) {
-    console.error("[L'SA] API key check failed:", e);
+    console.error("[Kira] API key check failed:", e);
     status.textContent = `failed: ${e.message || 'connection error'}`;
     status.style.color = '#FF4D4D';
   }
@@ -1192,12 +1192,12 @@ addBubble("Hi — ask me if it's safe out there, or how hot it is.", 'lsa');
   try {
     await initNotifications();
   } catch (e) {
-    console.warn("[L'SA] notification startup failed:", e.message || e);
+    console.warn("[Kira] notification startup failed:", e.message || e);
   }
   try {
     await resolveLocation();
   } catch (e) {
-    console.warn("[L'SA] location startup failed:", e.message || e);
+    console.warn("[Kira] location startup failed:", e.message || e);
   }
 })();
 
@@ -1216,7 +1216,7 @@ addBubble("Hi — ask me if it's safe out there, or how hot it is.", 'lsa');
     // Plugin not installed/synced yet, or running in a plain browser
     // preview where it doesn't apply at all — never let this block
     // the rest of the app.
-    console.warn("[L'SA] status bar overlay not applied:", e.message || e);
+    console.warn("[Kira] status bar overlay not applied:", e.message || e);
   }
 })();
 </script>

@@ -1,7 +1,7 @@
 {
-  "name": "lsa-heat-intelligence",
+  "name": "kira-heat-intelligence",
   "version": "1.0.0",
-  "description": "L'SA — hyperlocal heat intelligence, standalone Android app (Capacitor port of the LSA_Life_Change Flask backend, zero server dependency)",
+  "description": "Kira — hyperlocal heat intelligence, standalone Android app (Capacitor port of the LSA_Life_Change Flask backend, zero server dependency)",
   "type": "module",
   "scripts": {
     "build:web": "vite build",

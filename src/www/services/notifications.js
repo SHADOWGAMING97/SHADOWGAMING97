@@ -32,7 +32,7 @@ import { ForegroundService } from '@capawesome-team/capacitor-android-foreground
 // instead of stacking a new one per call — same behavior/intent as
 // the previous one-shot version's fixed STATUS_NOTIFICATION_ID.
 const FOREGROUND_NOTIFICATION_ID = 4001;
-const FOREGROUND_CHANNEL_ID = 'lsa_status_channel';
+const FOREGROUND_CHANNEL_ID = 'kira_status_channel';
 
 // Android's ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC constant is 1.
 // The installed Capacitor plugin expects an integer here, not the string
@@ -61,7 +61,7 @@ export async function ensureNotificationPermission() {
     // the OS version predates runtime notification permissions
     // entirely (pre-Android 13) — never let a permission-check
     // failure block the rest of the app from working.
-    console.warn("[L'SA] notification permission check failed:", e.message || e);
+    console.warn("[Kira] notification permission check failed:", e.message || e);
   }
   await ensureNotificationChannel();
 }
@@ -71,13 +71,13 @@ async function ensureNotificationChannel() {
   try {
     await ForegroundService.createNotificationChannel({
       id: FOREGROUND_CHANNEL_ID,
-      name: "L'SA status",
+      name: "Kira status",
       description: 'Ongoing heat monitoring status',
       importance: 2,
     });
     channelReady = true;
   } catch (e) {
-    console.warn("[L'SA] notification channel setup failed:", e.message || e);
+    console.warn("[Kira] notification channel setup failed:", e.message || e);
   }
 }
 
@@ -96,7 +96,7 @@ function buildContent(checkResult, tierUsed) {
     let failMsg = error || 'connection failed';
     if (reason === 'no_qualifying_trigger') failMsg = 'waiting for next check';
     return {
-      title: "L'SA: Monitoring Active",
+      title: "Kira: Monitoring Active",
       body: `⚠️ Last attempt failed: ${failMsg}\nUpdated: ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`,
     };
   }
@@ -108,7 +108,7 @@ function buildContent(checkResult, tierUsed) {
   
   // Format as a richer summary. Android 12+ often truncates long bodies,
   // so we keep the most critical info (Temp/Risk) in the title.
-  const title = `L'SA: ${data.temp_f}°F — ${risk} RISK`;
+  const title = `Kira: ${data.temp_f}°F — ${risk} RISK`;
   const body = `📍 ${loc}\nStatus: ${cached ? 'Cached data' : 'Live API result'}\nLast updated: ${time}`;
   
   return { title, body };
@@ -153,7 +153,7 @@ async function startForegroundNotification(title, body) {
       id: FOREGROUND_NOTIFICATION_ID,
       title,
       body,
-      smallIcon: 'ic_stat_lsa',
+      smallIcon: 'ic_stat_kira',
       notificationChannelId: FOREGROUND_CHANNEL_ID,
       serviceType: SERVICE_TYPE,
       silent: true,
@@ -169,7 +169,7 @@ async function startForegroundNotification(title, body) {
 
 export async function startIdleNotification() {
   await startForegroundNotification(
-    "L'SA — monitoring active",
+    "Kira — monitoring active",
     'Waiting for the current heat reading…',
   );
 }

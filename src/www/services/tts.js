@@ -35,6 +35,6 @@ export async function speakIfCritical(reading) {
     // TTS failing (engine unavailable, language pack missing, etc.)
     // must never break the temperature-check flow it's attached to —
     // same fire-and-forget posture as notifications.js already uses.
-    console.warn("[L'SA] TTS failed:", e.message || e);
+    console.warn("[Kira] TTS failed:", e.message || e);
   }
 }

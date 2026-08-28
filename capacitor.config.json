@@ -1,6 +1,6 @@
 {
   "appId": "com.lucky.lsa.heatintel",
-  "appName": "L'SA",
+  "appName": "Kira",
   "webDir": "dist",
   "plugins": {
     "CapacitorHttp": {

@@ -85,7 +85,7 @@ export async function resolveLocation(locationManager, userId) {
     // handled separately below. Logged loudly so this is never
     // silently mistaken for "device doesn't support GPS" again.
     console.error(
-      "[L'SA] Geolocation.checkPermissions() threw — this almost always " +
+      "[Kira] Geolocation.checkPermissions() threw — this almost always " +
       "means @capacitor/geolocation was not synced into the native " +
       "Android project. Run `npx cap sync android` and confirm " +
       "ACCESS_FINE_LOCATION/ACCESS_COARSE_LOCATION appear in " +

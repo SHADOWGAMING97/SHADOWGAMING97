@@ -29,14 +29,14 @@ async function buildContent(checkResult, tierUsed) {
     let failMsg = error || 'connection failed';
     if (reason === 'no_qualifying_trigger') failMsg = 'waiting for next check';
     return {
-      title: "L'SA: Monitoring Active",
+      title: "Kira: Monitoring Active",
       body: `⚠️ Last attempt failed: ${failMsg}\nUpdated: ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`,
     };
   }
   const risk = data.risk_level.toUpperCase();
   const loc = data.location.includes(',') ? 'Current location' : data.location;
   const time = new Date(data.fetched_at * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-  const title = `L'SA: ${data.temp_f}°F — ${risk} RISK`;
+  const title = `Kira: ${data.temp_f}°F — ${risk} RISK`;
   const body = `📍 ${loc}\nStatus: ${cached ? 'Cached data' : 'Live API result'}\nLast updated: ${time}`;
   return { title, body };
 }
