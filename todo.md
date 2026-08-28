@@ -49,3 +49,7 @@ Add a Vite build that bundles the unchanged UI/service source, point Capacitor `
 - [x] Add live next-API-call countdown timer to the Token Hub UI.
 - [x] Implement real Android background scheduling system for periodic heat checks.
 - [x] Rebuild and verify the final redesigned APK and source package.
+- [x] Restore previous working UI and API flow (character scene + chat).
+- [x] Add user-definable schedule interval setting in Profile tab.
+- [x] Implement reboot survival for background scheduler via Android BootReceiver.
+- [x] Rebuild and verify the final restored APK and source package.
