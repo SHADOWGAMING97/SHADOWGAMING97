@@ -28,7 +28,7 @@ import com.getcapacitor.annotation.PermissionCallback;
 public class LocationControlPlugin extends Plugin {
     @PluginMethod
     public void requestLocationPermission(PluginCall call) {
-        if (hasRequiredPermissions()) {
+        if (hasLocationPermission()) {
             resolveState(call);
             return;
         }
@@ -60,7 +60,7 @@ public class LocationControlPlugin extends Plugin {
         call.resolve();
     }
 
-    private boolean hasRequiredPermissions() {
+    private boolean hasLocationPermission() {
         Context context = getContext();
         return context.checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
             || context.checkSelfPermission(Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED;
@@ -75,7 +75,7 @@ public class LocationControlPlugin extends Plugin {
             try { providerEnabled = providerEnabled || manager.isProviderEnabled(LocationManager.NETWORK_PROVIDER); } catch (Exception ignored) {}
         }
         JSObject result = new JSObject();
-        result.put("permissionGranted", hasRequiredPermissions());
+        result.put("permissionGranted", hasLocationPermission());
         result.put("fineGranted", context.checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED);
         result.put("coarseGranted", context.checkSelfPermission(Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED);
         result.put("providerEnabled", providerEnabled);
