@@ -17,7 +17,17 @@ const service = `
             android:enabled="true"
             android:exported="false"
             android:foregroundServiceType="dataSync"
-            android:stopWithTask="false" />`;
+            android:stopWithTask="false" />
+
+        <receiver
+            android:name="io.capawesome.capacitorjs.plugins.foregroundservice.BootReceiver"
+            android:enabled="true"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.QUICKBOOT_POWERON" />
+            </intent-filter>
+        </receiver>`;
 
 if (staleService.test(manifest)) {
   manifest = manifest.replace(staleService, service);
@@ -34,6 +44,7 @@ const permissions = [
   'android.permission.FOREGROUND_SERVICE',
   'android.permission.FOREGROUND_SERVICE_DATA_SYNC',
   'android.permission.WAKE_LOCK',
+  'android.permission.RECEIVE_BOOT_COMPLETED',
 ];
 for (const permission of permissions) {
   if (!manifest.includes(`android:name="${permission}"`)) {

@@ -1,9 +1,6 @@
 /**
  * Scheduler — persistent background scheduling for Kira.
- *
- * Manages the "Next API Call" countdown and ensures checks trigger
- * automatically based on the selected tier. State is persisted to
- * Preferences so it survives app restarts.
+ * Supports both pricing tiers and user-defined custom intervals.
  */
 
 import { storageAdapter } from './storage.js';
@@ -14,6 +11,7 @@ const SCHEDULER_KEY = 'kira_scheduler_state';
 // Default state
 let state = {
   selectedTier: 'standard',
+  customIntervalMin: 0, // 0 means use tier-based interval
   lastCallAt: 0,
   nextCallAt: 0,
 };
@@ -55,48 +53,60 @@ export function getSchedulerState() {
 }
 
 /**
- * Updates the selected tier and recalculates the next call time.
- * If the new tier would have already triggered a call, it sets
- * nextCallAt to 'now'.
+ * Sets a custom interval in minutes. 0 means revert to tier-based.
+ */
+export async function setCustomInterval(minutes) {
+  state.customIntervalMin = Math.max(0, parseInt(minutes) || 0);
+  await recalculateNextCall();
+}
+
+/**
+ * Updates the selected tier.
  */
 export async function setScheduledTier(tier) {
   if (!PRICING_TIERS[tier]) return;
   state.selectedTier = tier;
+  await recalculateNextCall();
+}
+
+async function recalculateNextCall() {
+  let intervalMs;
+  if (state.customIntervalMin > 0) {
+    intervalMs = state.customIntervalMin * 60 * 1000;
+  } else {
+    intervalMs = PRICING_TIERS[state.selectedTier].max_delay_sec * 1000;
+  }
   
-  // Recalculate next call based on last call + new tier delay
-  const interval = PRICING_TIERS[tier].max_delay_sec * 1000;
-  state.nextCallAt = state.lastCallAt + interval;
+  state.nextCallAt = state.lastCallAt + intervalMs;
   
-  // If we've already passed that time, trigger soon
+  // If we've already passed that time or never called, trigger soon
   if (state.nextCallAt < Date.now()) {
-    state.nextCallAt = Date.now() + 2000; // trigger in 2s
+    state.nextCallAt = Date.now() + 5000; // trigger in 5s
   }
   
   await save();
 }
 
 /**
- * Record that a call just happened (manual or scheduled).
- * Resets the countdown for the next interval.
+ * Record that a call just happened.
  */
 export async function recordCallSuccess() {
   state.lastCallAt = Date.now();
-  const interval = PRICING_TIERS[state.selectedTier].max_delay_sec * 1000;
-  state.nextCallAt = state.lastCallAt + interval;
+  let intervalMs;
+  if (state.customIntervalMin > 0) {
+    intervalMs = state.customIntervalMin * 60 * 1000;
+  } else {
+    intervalMs = PRICING_TIERS[state.selectedTier].max_delay_sec * 1000;
+  }
+  state.nextCallAt = state.lastCallAt + intervalMs;
   await save();
 }
 
-/**
- * Returns seconds remaining until the next scheduled call.
- */
 export function getSecondsRemaining() {
   if (!state.nextCallAt) return 0;
   return Math.max(0, Math.floor((state.nextCallAt - Date.now()) / 1000));
 }
 
-/**
- * Checks if a scheduled call is due.
- */
 export function isCallDue() {
   return state.nextCallAt > 0 && Date.now() >= state.nextCallAt;
 }

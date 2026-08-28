@@ -73,15 +73,12 @@ export async function checkTemperature(location, eventTrigger, tier) {
 
 /**
  * Background trigger for scheduled calls.
- * UI or Foreground service should call this every ~10-60s.
  */
 export async function checkScheduledCall(locationResolver) {
   if (!isCallDue()) return null;
-  
   const { selectedTier } = getSchedulerState();
   const loc = await locationResolver();
   if (!loc || !loc.coordStr) return null;
-
   console.log(`[Kira] triggering scheduled call for tier: ${selectedTier}`);
   return checkTemperature(loc.coordStr, 'scheduled_check', selectedTier);
 }

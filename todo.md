@@ -45,3 +45,7 @@ Add a Vite build that bundles the unchanged UI/service source, point Capacitor `
 - [x] Rename all user-facing LSA branding to Kira, including app title, status/notification labels, preview text, and package metadata descriptions.
 - [x] Replace the Android launcher icon with a custom Kira Heat Intelligence icon across adaptive and density-specific resources.
 - [x] Rebuild and verify the Kira-branded APK, check for stale user-facing LSA references, and sync the final source/archive.
+- [x] Redesign Kira UI to match the premium dark heat-intelligence reference (Dashboard, Token Hub, Settings).
+- [x] Add live next-API-call countdown timer to the Token Hub UI.
+- [x] Implement real Android background scheduling system for periodic heat checks.
+- [x] Rebuild and verify the final redesigned APK and source package.
