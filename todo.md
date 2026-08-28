@@ -53,3 +53,7 @@ Add a Vite build that bundles the unchanged UI/service source, point Capacitor `
 - [x] Add user-definable schedule interval setting in Profile tab.
 - [x] Implement reboot survival for background scheduler via Android BootReceiver.
 - [x] Rebuild and verify the final restored APK and source package.
+- [x] Merge premium dashboard UI with proven character-scene and API logic.
+- [x] Fix explicit startup location permission request.
+- [x] Ensure scheduler persistence and reboot survival via Android BootReceiver.
+- [x] Rebuild and verify the final hybrid APK and source package.

@@ -163,22 +163,7 @@
 <div class="device-shell">
   <div class="app-frame">
     
-    <div class="status-bar">
-      <span id="clock">9:41 AM</span>
-      <div style="display:flex; gap:6px; align-items:center;">
-        <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M12 3C7.41 3 3.41 4.89 0.5 7.94L12 21.5L23.5 7.94C20.59 4.89 16.59 3 12 3Z"/></svg>
-        <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M17 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2Zm-1 14H8V7h8v12Z"/></svg>
-        <span>100%</span>
-      </div>
-    </div>
-
-    <header class="header">
-      <h1 id="screenTitle">Heat Intelligence</h1>
-      <div style="display:flex; gap:12px; opacity:0.6;">
-        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
-        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
-      </div>
-    </header>
+    <!-- Removed duplicate status bar and header per instruction -->
 
     <div class="screens">
       
@@ -317,7 +302,6 @@ let currentReading = null;
 let selectedTier = 'standard';
 
 /* Tab Switching */
-const screenTitles = { home: 'Heat Intelligence', tokens: 'Token Hub', profile: 'Settings' };
 document.querySelectorAll('.tab-btn').forEach(btn => {
   btn.addEventListener('click', () => {
     const tab = btn.dataset.tab;
@@ -325,7 +309,6 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
     document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
     btn.classList.add('active');
     document.getElementById('screen-' + tab).classList.add('active');
-    document.getElementById('screenTitle').textContent = screenTitles[tab];
   });
 });
 
@@ -479,22 +462,31 @@ document.getElementById('chatSend').addEventListener('click', () => {
 /* Boot */
 (async () => {
   try {
+    // 1. Initialize core services (Scheduler, Notifications)
     await bootServices();
-    const loc = await resolveDeviceLocation();
-    document.getElementById('locStatusVal').textContent = loc.statusVal.toUpperCase();
-    document.getElementById('locStatusLine').textContent = `Location: ${loc.statusLine}`;
     
+    // 2. Explicitly request location permission immediately on startup
+    // This will trigger the native Android permission prompt.
+    const loc = await resolveDeviceLocation();
+    
+    // 3. Update UI status indicators
+    const valEl = document.getElementById('locStatusVal');
+    const lineEl = document.getElementById('locStatusLine');
+    if (valEl) valEl.textContent = loc.statusVal.toUpperCase();
+    if (lineEl) lineEl.textContent = `Location: ${loc.statusLine}`;
+    
+    // 4. Perform initial temperature check
     const res = await checkTemperature(loc.coordStr, 'morning_check', selectedTier);
     updateUI(res);
 
-    // Background loop
+    // 5. Start background intelligence check loop
     setInterval(async () => {
       const scheduledRes = await checkScheduledCall(resolveDeviceLocation);
       if (scheduledRes) updateUI(scheduledRes);
     }, 30000);
 
   } catch (e) {
-    console.error("[Kira] boot failed:", e);
+    console.error("[Kira] startup failed:", e);
   }
 })();
 </script>
