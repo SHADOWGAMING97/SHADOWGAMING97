@@ -248,7 +248,7 @@
         <div class="settings-group">
           <h3>*General Setting*</h3>
           <div class="settings-list">
-            <div class="settings-item" id="btnRefreshLoc" style="cursor:pointer;"><div class="icon"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg></div><div class="text"><h4>Location</h4><p id="locStatusLine">Checking permission…</p></div><span class="val" id="locStatusVal">OFF</span><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="3" opacity="0.3" style="margin-left:8px;"><path d="m9 18 6-6-6-6"/></svg></div>
+            <div class="settings-item location-item" id="btnRefreshLoc" style="cursor:pointer;"><div class="icon"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg></div><div class="text"><h4>Location</h4><p id="locStatusLine">Checking permission…</p></div><span class="val" id="locStatusVal">OFF</span><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="3" opacity="0.3" style="margin-left:8px;"><path d="m9 18 6-6-6-6"/></svg><div class="location-actions"><button class="settings-action" id="btnOpenLocationSettings" type="button">OPEN APP SETTINGS</button></div></div>
             <div class="settings-item"><div class="icon"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg></div><div class="text"><h4>Schedule</h4><p>Check interval in minutes</p></div><input type="number" id="scheduleInput" value="0" class="input-box" /></div>
             <div class="settings-item"><div class="icon">°F</div><div class="text"><h4>Units</h4><p>Toggle Celsius/Fahrenheit</p></div><span class="val" id="unitVal">Fahrenheit</span></div>
           </div>
@@ -286,6 +286,7 @@ import {
   setScheduledTier, setCustomInterval 
 } from './services/scheduler.js';
 import { decisionFor } from './services/templates.js';
+import { AppLauncher } from '@capacitor/app-launcher';
 
 // Explicitly import scene assets so Vite bundles them
 import './assets/lsa_scene_low.png';
@@ -440,6 +441,25 @@ if (btnRefreshLoc) {
     if (statusLine) statusLine.textContent = `Location: ${loc.statusLine}`;
     const res = await checkTemperature(loc.coordStr, 'manual_refresh', selectedTier);
     updateUI(res);
+  });
+}
+
+const btnOpenLocationSettings = document.getElementById('btnOpenLocationSettings');
+if (btnOpenLocationSettings) {
+  btnOpenLocationSettings.addEventListener('click', async (event) => {
+    event.stopPropagation();
+    const statusLine = document.getElementById('locStatusLine');
+    try {
+      if (window.Capacitor?.isNativePlatform?.()) {
+        await AppLauncher.openUrl({ url: 'app-settings:' });
+        if (statusLine) statusLine.textContent = 'Opened app settings · enable Location';
+      } else {
+        if (statusLine) statusLine.textContent = 'Open your browser or device settings to enable Location';
+      }
+    } catch (error) {
+      console.warn('[Kira] Could not open app settings:', error);
+      if (statusLine) statusLine.textContent = 'Open Android Settings → Apps → Kira → Permissions';
+    }
   });
 }
 
