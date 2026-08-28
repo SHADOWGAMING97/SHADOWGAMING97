@@ -792,6 +792,7 @@ import {
   setScheduledTier, setCustomInterval 
 } from './services/scheduler.js';
 import { TEMPLATES, decisionFor } from './services/templates.js';
+import { storageAdapter } from './services/storage.js';
 import { AppLauncher } from '@capacitor/app-launcher';
 import { registerPlugin } from '@capacitor/core';
 const LocationControl = registerPlugin('LocationControl');
@@ -1111,6 +1112,7 @@ function updateCountdown() {
   if (el) el.textContent = `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
 }
 setInterval(updateCountdown, 1000);
+updateCountdown();
 
 // Custom Schedule Input
 const scheduleInput = document.getElementById('scheduleInput');
@@ -1186,8 +1188,15 @@ btnOpenLocationSettings?.addEventListener('click', async () => {
   }
 });
 
-document.getElementById('toggleAlerts').addEventListener('click', function(){
+const ALERTS_KEY = 'ui:heat_alerts_enabled';
+const alertsToggle = document.getElementById('toggleAlerts');
+(async () => {
+  const saved = await storageAdapter.get(ALERTS_KEY);
+  if (saved !== null) alertsToggle.classList.toggle('is-on', saved === 'true');
+})();
+alertsToggle.addEventListener('click', async function(){
   this.classList.toggle('is-on');
+  await storageAdapter.set(ALERTS_KEY, this.classList.contains('is-on') ? 'true' : 'false');
 });
 
 btnOpenGpsSettings?.addEventListener('click', async () => {
@@ -1308,7 +1317,7 @@ addBubble("Hi — ask me if it's safe out there, or how hot it is.", 'lsa');
       }
       refreshTokenPanel();
     }
-  }, 30000); // Check every 30s if a call is due
+  }, 5000); // Check every 5s so a due call is not delayed or missed
 })();
 
 // Status bar overlay — dynamic import + defensive try/catch so this
